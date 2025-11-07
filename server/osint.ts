@@ -43,11 +43,17 @@ export interface BreachData {
 
 export async function checkHaveIBeenPwned(email: string): Promise<BreachData[]> {
   try {
+    if (!process.env.HAVEIBEENPWNED_API_KEY) {
+      console.error("HAVEIBEENPWNED_API_KEY is not set");
+      throw new Error("HaveIBeenPwned API key is not configured");
+    }
+
     const response = await axios.get(
       `https://haveibeenpwned.com/api/v3/breachedaccount/${encodeURIComponent(email)}?truncateResponse=false`,
       {
         headers: {
           "User-Agent": "DarkTrack-OSINT-Dashboard",
+          "hibp-api-key": process.env.HAVEIBEENPWNED_API_KEY,
         },
         validateStatus: (status) => status === 200 || status === 404,
       }
