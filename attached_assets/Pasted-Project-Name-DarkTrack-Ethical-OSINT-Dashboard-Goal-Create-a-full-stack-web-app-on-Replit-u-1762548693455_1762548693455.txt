@@ -1,0 +1,83 @@
+Project Name: DarkTrack — Ethical OSINT Dashboard
+
+Goal:
+Create a full-stack web app on Replit (using Flask + TailwindCSS) called “DarkTrack”.
+This app lets users securely log in with GitHub, Google, or Apple, and view an AI-driven dashboard that analyzes how their data appears across the internet.
+
+Theme:
+Built for the Replit Vibeathon 2025 (Agentverse track).
+Focus on building an intelligent, autonomous OSINT (Open Source Intelligence) agent that plans, executes, and reports findings automatically.
+
+Core Requirements:
+1. **Authentication**
+   - Login or signup page with options to sign in via GitHub, Google, or Apple ID.
+   - After login, redirect to user dashboard.
+   - Store basic user info (name, email, id) in session.
+   - Logout option.
+
+2. **Dashboard**
+   - Display global data of the user: where their data appears online (using APIs like HaveIBeenPwned, GitHub, WHOIS lookup, etc.).
+   - Show summary metrics:
+     - Number of breaches found.
+     - Profiles detected (e.g., GitHub, Twitter).
+     - Overall security risk score (0–100).
+     - Secured data percentage (inverse of risk).
+   - Clean, dark-themed dashboard UI using TailwindCSS.
+
+3. **AI Analysis**
+   - AI agent should analyze the fetched data and automatically:
+     - Detect which data is breached, exposed, or at risk.
+     - Predict which data *could become vulnerable* based on patterns.
+     - Offer to provide “steps to secure” that data.
+     - Ask the user whether to view or receive the recommendations.
+
+4. **Reports**
+   - Display a visual report summarizing:
+     - “Data in Danger”
+     - “Data Potentially at Risk”
+     - “Secured Data”
+   - Add an option to generate a downloadable PDF summary.
+   - Show an overall “Digital Safety Score” and progress bar.
+
+5. **Backend Logic**
+   - Use Flask routes:
+     - `/` → login page
+     - `/dashboard` → user dashboard
+     - `/api/scan` → API endpoint that runs the OSINT agent
+   - Create an `osint_agent.py` module to:
+     - Query public APIs.
+     - Aggregate results.
+     - Compute risk and secured data ratio.
+     - Generate an AI-based summary and recommendations.
+   - Use Replit DB for storing past scans and analytics.
+
+6. **Design**
+   - Sleek dark mode design with neon blue highlights.
+   - Dashboard layout: Left side → input/search; Right side → visual results.
+   - Use Tailwind for styling and Chart.js or Plotly for charts.
+   - Keep it mobile responsive.
+
+7. **AI Integration**
+   - Include a reasoning engine or AI summarizer that interprets raw data and produces insights like:
+     “Your email was found in 2 breaches. Risk level: Medium. Suggested action: Change your password and enable 2FA.”
+   - If Replit AI Agent is available, integrate it for generating natural-language recommendations.
+
+8. **Ethical and Privacy Rules**
+   - Use only public OSINT data (no private scraping).
+   - Don’t store sensitive info permanently.
+   - Include a disclaimer: “DarkTrack uses public data sources and does not access private information.”
+
+Deliverables:
+- A functioning Flask app hosted on Replit with working login, dashboard, API scanning, and AI suggestions.
+- TailwindCSS styled UI and responsive dashboard.
+- Short README.md describing the purpose, APIs, and ethical OSINT scope.
+
+Judging Focus:
+- Autonomy: The AI agent acts and analyzes automatically.
+- Intelligence: It provides real-time recommendations.
+- Creativity: Elegant dashboard and visualization.
+- Replit Integration: Uses Replit DB, AI, and deployment.
+
+Tone and Style:
+Keep it professional, minimalistic, and production-ready.
+Focus on usability, data visualization, and secure design.
