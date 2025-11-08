@@ -4,10 +4,14 @@ import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { checkHaveIBeenPwned, calculateRiskScore, generateAIAnalysis } from "./osint";
 import { chatWithGemini } from "./chatAssistant";
+import { registerAuthRoutes } from "./authRoutes";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
   await setupAuth(app);
+  
+  // Register new auth routes (email/password and phone/OTP)
+  registerAuthRoutes(app);
 
   // Auth routes
   app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {

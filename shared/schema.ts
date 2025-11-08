@@ -22,13 +22,24 @@ export const sessions = pgTable(
   (table) => [index("IDX_session_expire").on(table.expire)],
 );
 
-// User storage table - required for Replit Auth
+// User storage table - supports multiple auth methods
 export const users = pgTable("users", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
   email: varchar("email").unique(),
+  emailEncrypted: text("email_encrypted"),
+  passwordHash: varchar("password_hash"),
+  phoneNumber: varchar("phone_number").unique(),
+  phoneNumberEncrypted: text("phone_number_encrypted"),
   firstName: varchar("first_name"),
   lastName: varchar("last_name"),
   profileImageUrl: varchar("profile_image_url"),
+  emailVerified: integer("email_verified").notNull().default(0),
+  phoneVerified: integer("phone_verified").notNull().default(0),
+  authProvider: varchar("auth_provider").notNull().default("google"),
+  otpCode: varchar("otp_code"),
+  otpExpiry: timestamp("otp_expiry"),
+  verificationToken: varchar("verification_token"),
+  verificationTokenExpiry: timestamp("verification_token_expiry"),
   lastManualLookupAt: timestamp("last_manual_lookup_at"),
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
@@ -36,6 +47,50 @@ export const users = pgTable("users", {
 
 export type UpsertUser = typeof users.$inferInsert;
 export type User = typeof users.$inferSelect;
+
+export const insertUserSchema = createInsertSchema(users).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const signupEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(8, "Password must be at least 8 characters"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export const loginEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+  password: z.string().min(1, "Password is required"),
+});
+
+export const signupPhoneSchema = z.object({
+  phoneNumber: z.string().regex(/^\+?[1-9]\d{1,14}$/, "Invalid phone number format (E.164)"),
+  firstName: z.string().min(1, "First name is required"),
+  lastName: z.string().min(1, "Last name is required"),
+});
+
+export const attachEmailSchema = z.object({
+  email: z.string().email("Invalid email address"),
+});
+
+export const verifyOtpSchema = z.object({
+  phoneNumber: z.string(),
+  otpCode: z.string().length(6, "OTP code must be 6 digits"),
+});
+
+export const verifyEmailTokenSchema = z.object({
+  token: z.string(),
+});
+
+export type SignupEmail = z.infer<typeof signupEmailSchema>;
+export type LoginEmail = z.infer<typeof loginEmailSchema>;
+export type SignupPhone = z.infer<typeof signupPhoneSchema>;
+export type AttachEmail = z.infer<typeof attachEmailSchema>;
+export type VerifyOtp = z.infer<typeof verifyOtpSchema>;
+export type VerifyEmailToken = z.infer<typeof verifyEmailTokenSchema>;
 
 // Scans table - stores OSINT scan results
 export const scans = pgTable("scans", {

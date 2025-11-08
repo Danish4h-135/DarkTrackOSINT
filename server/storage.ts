@@ -29,8 +29,17 @@ export interface ScanWithBreaches extends Scan {
 export interface IStorage {
   // User operations - required for Replit Auth
   getUser(id: string): Promise<User | undefined>;
+  getUserByEmail(email: string): Promise<User | undefined>;
+  getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined>;
+  getUserByVerificationToken(token: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  createUser(user: UpsertUser): Promise<User>;
   updateUserManualLookupTimestamp(id: string): Promise<void>;
+  updateUserOTP(id: string, otpCode: string, otpExpiry: Date): Promise<void>;
+  updateUserVerificationToken(id: string, token: string, expiry: Date): Promise<void>;
+  verifyUserEmail(id: string): Promise<void>;
+  verifyUserPhone(id: string): Promise<void>;
+  attachEmailToUser(id: string, email: string, emailEncrypted: string): Promise<User | undefined>;
   
   // Scan operations
   createScan(scan: InsertScan): Promise<Scan>;
@@ -91,6 +100,63 @@ export class DatabaseStorage implements IStorage {
       .update(users)
       .set({ lastManualLookupAt: new Date() })
       .where(eq(users.id, id));
+  }
+
+  async getUserByEmail(email: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.email, email));
+    return user;
+  }
+
+  async getUserByPhoneNumber(phoneNumber: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.phoneNumber, phoneNumber));
+    return user;
+  }
+
+  async getUserByVerificationToken(token: string): Promise<User | undefined> {
+    const [user] = await db.select().from(users).where(eq(users.verificationToken, token));
+    return user;
+  }
+
+  async createUser(userData: UpsertUser): Promise<User> {
+    const [user] = await db.insert(users).values(userData).returning();
+    return user;
+  }
+
+  async updateUserOTP(id: string, otpCode: string, otpExpiry: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ otpCode, otpExpiry, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async updateUserVerificationToken(id: string, token: string, expiry: Date): Promise<void> {
+    await db
+      .update(users)
+      .set({ verificationToken: token, verificationTokenExpiry: expiry, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async verifyUserEmail(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ emailVerified: 1, verificationToken: null, verificationTokenExpiry: null, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async verifyUserPhone(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ phoneVerified: 1, otpCode: null, otpExpiry: null, updatedAt: new Date() })
+      .where(eq(users.id, id));
+  }
+
+  async attachEmailToUser(id: string, email: string, emailEncrypted: string): Promise<User | undefined> {
+    const [user] = await db
+      .update(users)
+      .set({ email, emailEncrypted, updatedAt: new Date() })
+      .where(eq(users.id, id))
+      .returning();
+    return user;
   }
 
   // Scan operations
