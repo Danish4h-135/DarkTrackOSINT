@@ -1,0 +1,97 @@
+I want two related features added to the existing codebase.
+
+High-level goal
+
+Allow a user to perform one manual, ad-hoc lookup per day (e.g. entering any email to check). That one-off lookup should run the normal OSINT pipeline and AI analysis, return results to the user, but not be stored in the main scans table unless the user explicitly clicks a “Save” button in the UI afterwards. Enforce the one-per-24-hour rule per authenticated user on the backend.
+
+All other scanning actions must be strictly limited to the authenticated user’s own registered personal data (email, phone, name, username) — i.e., scans that use data the user provided at signup/profile time. Those scans are allowed freely and their results should be stored and shown on the user’s dashboard.
+
+Additionally, add a visible Scan button in the dashboard UI. When the logged-in user clicks “Scan” it should:
+
+launch the full OSINT pipeline over the user’s stored data (email, phone, name, username),
+
+collect all pages/domains where each piece of data appears,
+
+list each source (URL or domain), what kind of user data was found there (email, phone, username, etc.), and a short excerpt or description,
+
+call the AI analyzer to rate the risk for each finding and to provide an overall risk score and recommendations,
+
+save the encrypted scan results and the encrypted AI report in the DB (for user-owned scans),
+
+update the dashboard to show the scan results (decrypted for that authenticated user only).
+
+Implementation details & where to edit
+
+Enforce one manual lookup per day
+
+Edit the lookup route (the existing ad-hoc lookup endpoint — e.g. /api/lookup or add it to routes.ts) to:
+
+Require authentication.
+
+Check a lastManualLookupAt timestamp stored on the user or in a small per-user counter table (add a column last_manual_lookup_at TIMESTAMP to the users table or a lookup_quota table).
+
+If lastManualLookupAt is within the last 24 hours, return a JSON error telling the user they have reached their daily manual lookup quota.
+
+If allowed, run the existing OSINT pipeline (reuse osint.ts / runOSINT logic), call the AI analyzer, and do not call the save/insert functions that persist scans. Return results to the client (decrypted / sanitized for the authenticated user).
+
+If the user chooses to save the temporary lookup, add a separate endpoint /api/lookup/save (POST) that will save the encrypted data into the scans table (and set lastManualLookupAt if needed).
+
+Update the user record to set lastManualLookupAt = now() on successful manual lookup.
+
+Limit other scans to user-owned data
+
+Ensure the POST /api/scan or /api/scan/self endpoint accepts no free-form query and instead reads the user’s stored (encrypted) profile fields: emailEnc, phoneEnc, nameEnc, usernameEnc. Decrypt them server-side, then run the OSINT pipeline for each field, aggregate results, call AI analyzer, and persist the encrypted results into the scans table.
+
+Reject any POST /api/scan that tries to supply an arbitrary query unless it is routed to the one-off /api/lookup flow (subject to the daily limit).
+
+Dashboard behaviour
+
+Edit /api/dashboard (or add) so it returns:
+
+The user’s saved scans (most recent 10), decrypted AI summaries and the per-finding results (with source URL/domain and data type found).
+
+An overall safety overview: avg risk score, counts of high/medium/low findings.
+
+Whether the user has used up their one manual lookup for today and when the next one is available.
+
+On the frontend dashboard page (client/src/pages/dashboard.tsx or equivalent), add:
+
+A prominent Scan button that triggers the “user-owned data” scan described above. While scanning, show a spinner / progress state.
+
+A Quick Check input where the user can paste a single email/username to check once (calls /api/lookup). Disable the Quick Check button if the user has already used their one manual lookup today and show the next available time.
+
+When the Scan completes, display results grouped by data item (email/phone/name) and for each finding show: source (domain/URL), what was found, and the AI risk rating and short recommendation.
+
+A small “Save this one-off result” button next to Quick Check results that calls /api/lookup/save to persist it for the user (and then make it appear in their dashboard scans history).
+
+AI risk per finding
+
+When you run a scan, for each discovered source/finding call the AI analyzer to produce:
+
+a categorical rating for that finding (High/Medium/Low),
+
+a short natural-language recommendation (one-liners),
+
+include an overall numeric safety score (0–100) for the scan (use the existing generateAIAnalysis function).
+
+Use the existing OpenAI integration (gpt-4o-mini or whichever the project already uses) and keep the AI prompt consistent with previous AI analysis so outputs remain parseable and storable.
+
+Storage & encryption
+
+Continue using the project’s existing encryption helpers and storage functions.
+
+For saved scans (from the Scan button or when the user explicitly saves a one-off lookup), persist encrypted resultsEnc and aiReportEnc as currently implemented.
+
+For the one-off lookup, do not persist data by default — only return it in the response and only persist if the user presses Save.
+
+Rate limiting & abuse prevention
+
+Implement a per-user rate limit for /api/lookup of one per 24 hours. Use the last_manual_lookup_at timestamp to enforce that or a small lookup_quota table; return clear JSON with the next allowed time when denied.
+
+For /api/scan (user-owned scan), you may allow more frequent scanning, but consider a soft throttle (e.g. limit scans to once every few minutes) to prevent heavy abuse.
+
+UX & messages
+
+When the user attempts a Quick Check while out of quota, return a message: { error: true, message: "You can perform one manual lookup every 24 hours. Next one available at: 2025-11-09T10:00:00Z" }.
+
+On success, frontend should show the AI summary, per-finding risk labels, and a clear “Save” button for the one-off lookup.
