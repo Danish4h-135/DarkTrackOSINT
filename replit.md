@@ -9,9 +9,10 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - **React** with TypeScript
 - **Wouter** for routing
 - **TanStack Query** for data fetching and caching
-- **Tailwind CSS** with custom dark theme
+- **Tailwind CSS** with custom dark theme and animations
 - **Shadcn UI** components
 - **Lucide React** icons
+- **Framer Motion** for professional animations and page transitions
 
 ### Backend
 - **Express.js** server
@@ -179,7 +180,8 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - `ISSUER_URL` - OIDC issuer URL (defaults to Replit)
 
 ## Recent Changes
-- 2025-11-08 (Latest): **Gemini SDK Migration** - Migrated from deprecated @google/generative-ai package to new @google/genai SDK with gemini-2.5-flash model for improved chatbot performance and latest features
+- 2025-11-08 (Latest): **Professional Animations & API Integration** - Added comprehensive Framer Motion animations throughout the application with smooth transitions, counting animations, shimmer effects, hover interactions, and page transitions. Configured all API keys (OpenAI, Gemini, HaveIBeenPwned) for full functionality.
+- 2025-11-08: **Gemini SDK Migration** - Migrated from deprecated @google/generative-ai package to new @google/genai SDK with gemini-2.5-flash model for improved chatbot performance and latest features
 - 2025-11-08: **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
 - 2025-11-08: Added AI conversational assistant with GPT-4o-mini, AES encryption for data protection, persistent chat history
 - 2025-11-07: Initial MVP implementation with full OSINT scanning, AI analysis, and authentication
@@ -193,3 +195,14 @@ None specified yet
 - **Component-based UI**: Reusable components for consistent design
 - **Type-safe**: Full TypeScript coverage across frontend and backend
 - **Responsive-first**: Mobile-optimized layouts with desktop enhancements
+- **Animation-rich UX**: Professional Framer Motion animations throughout with smooth page transitions, micro-interactions, and loading states
+
+## Animation Features
+- **Landing Page**: Smooth fade-in and slide-up animations with staggered entrance effects and rotating shield icon
+- **Metric Cards**: Animated counting numbers with spring physics, hover lift effects, and icon rotation on hover
+- **Breach Cards**: Slide-in animations with expandable descriptions, animated badge reveals, and smooth height transitions
+- **Risk Score Chart**: Animated progress bars with smooth filling, counting animation for scores, and fade-in effects
+- **AI Recommendations**: Staggered list animations with hover slide effects and periodic sparkle icon rotation
+- **Loading States**: Shimmer skeleton animations for better perceived performance
+- **Page Transitions**: Smooth fade and slide animations between routes using AnimatePresence
+- **Hover Effects**: Consistent micro-interactions on buttons, cards, and interactive elements
