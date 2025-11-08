@@ -66,7 +66,7 @@ export default function Landing() {
         <div className="max-w-7xl mx-auto px-6">
           <div className="flex flex-col items-center space-y-2">
             <h1 
-              className="text-3xl font-bold tracking-tight"
+              className="font-bold tracking-tight text-[50px]"
               style={{ color: '#00B5FF' }}
             >
               DarkTrack
@@ -77,7 +77,6 @@ export default function Landing() {
           </div>
         </div>
       </motion.nav>
-
       {/* Main Section */}
       <main className="flex-1 flex items-center justify-center px-6 py-12">
         <div className="max-w-7xl w-full grid lg:grid-cols-2 gap-12 items-center">
@@ -344,7 +343,6 @@ export default function Landing() {
           </motion.div>
         </div>
       </main>
-
       {/* Footer */}
       <motion.footer
         className="relative z-10 py-6 border-t"
