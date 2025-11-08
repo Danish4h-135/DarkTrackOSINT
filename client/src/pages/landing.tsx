@@ -116,7 +116,7 @@ export default function Landing() {
                 }}
                 data-testid="button-login"
               >
-                <a href="/api/login">
+                <a href="/login-email">
                   <Lock className="h-5 w-5 mr-2" />
                   Login
                 </a>
@@ -134,7 +134,7 @@ export default function Landing() {
                 }}
                 data-testid="button-signup"
               >
-                <a href="/api/login">
+                <a href="/signup-email">
                   <Shield className="h-5 w-5 mr-2" />
                   Sign Up
                 </a>
@@ -173,7 +173,7 @@ export default function Landing() {
                   }}
                   data-testid="button-email-auth"
                 >
-                  <a href="/api/login">
+                  <a href="/signup-email">
                     <Mail className="h-4 w-4 mr-2" />
                     Email
                   </a>
@@ -190,7 +190,7 @@ export default function Landing() {
                   }}
                   data-testid="button-phone-auth"
                 >
-                  <a href="/api/login">
+                  <a href="/signup-phone">
                     <Phone className="h-4 w-4 mr-2" />
                     Phone
                   </a>

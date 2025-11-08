@@ -12,6 +12,11 @@ import Chat from "@/pages/chat";
 import History from "@/pages/history";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
+import SignupEmail from "@/pages/signup-email";
+import LoginEmail from "@/pages/login-email";
+import SignupPhone from "@/pages/signup-phone";
+import VerifyOTP from "@/pages/verify-otp";
+import AttachEmail from "@/pages/attach-email";
 import NotFound from "@/pages/not-found";
 import { AnimatePresence, motion } from "framer-motion";
 
@@ -41,6 +46,12 @@ function Router() {
         transition={pageTransition}
       >
         <Switch location={location}>
+          <Route path="/signup-email" component={SignupEmail} />
+          <Route path="/login-email" component={LoginEmail} />
+          <Route path="/signup-phone" component={SignupPhone} />
+          <Route path="/verify-otp" component={VerifyOTP} />
+          <Route path="/attach-email" component={AttachEmail} />
+          
           {isLoading || !isAuthenticated ? (
             <Route path="/" component={Landing} />
           ) : (
