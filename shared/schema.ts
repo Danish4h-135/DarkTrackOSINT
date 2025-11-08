@@ -48,6 +48,7 @@ export const scans = pgTable("scans", {
   securedDataPercentage: integer("secured_data_percentage").notNull().default(100),
   aiSummary: text("ai_summary"),
   aiRecommendations: jsonb("ai_recommendations").$type<string[]>(),
+  aiGeneratedAt: timestamp("ai_generated_at"),
   createdAt: timestamp("created_at").defaultNow(),
 });
 

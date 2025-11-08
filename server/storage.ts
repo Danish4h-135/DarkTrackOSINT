@@ -38,6 +38,7 @@ export interface IStorage {
   getScansByUserId(userId: string): Promise<Scan[]>;
   getScanById(id: string): Promise<Scan | undefined>;
   getRecentScansWithBreaches(userId: string, limit: number): Promise<ScanWithBreaches[]>;
+  updateScanAISuggestions(scanId: string, aiSummary: string, aiRecommendations: string[]): Promise<Scan | undefined>;
   
   // Breach operations
   createBreach(breach: InsertBreach): Promise<Breach>;
@@ -180,6 +181,27 @@ export class DatabaseStorage implements IStorage {
     );
     
     return scansWithBreaches;
+  }
+
+  async updateScanAISuggestions(scanId: string, aiSummary: string, aiRecommendations: string[]): Promise<Scan | undefined> {
+    const [updated] = await db
+      .update(scans)
+      .set({
+        aiSummary: encrypt(aiSummary),
+        aiRecommendations: aiRecommendations,
+        aiGeneratedAt: new Date(),
+      })
+      .where(eq(scans.id, scanId))
+      .returning();
+    
+    if (!updated) return undefined;
+    
+    // Decrypt for return
+    return {
+      ...updated,
+      email: decrypt(updated.email),
+      aiSummary: decrypt(updated.aiSummary),
+    };
   }
 
   // Breach operations
