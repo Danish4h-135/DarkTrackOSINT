@@ -18,7 +18,8 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - **PostgreSQL** database (Neon)
 - **Drizzle ORM** for database operations
 - **Replit Auth** (OpenID Connect) - supports GitHub, Google, Apple, email/password
-- **OpenAI GPT-4o-mini** for AI-powered security analysis and conversational assistant
+- **OpenAI GPT-4o-mini** for AI-powered risk analysis and breach summaries
+- **Google Gemini (gemini-pro)** for intelligent conversational chatbot assistant
 - **HaveIBeenPwned API** for breach data
 - **CryptoJS** for AES encryption of sensitive data
 
@@ -42,18 +43,21 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - Natural language summaries of breach data
 - Actionable security steps
 
-### AI Conversational Assistant (Specialized Cybersecurity Companion)
+### AI Conversational Assistant (Powered by Google Gemini)
+- **Gemini Pro Model**: Uses Google's latest gemini-pro for natural conversations
 - **Domain-Restricted AI**: Only discusses cybersecurity, privacy, and online safety topics
-- **Context-Aware**: Loads last 2-3 scans with full breach data before each response
-- **High-Risk Alerts**: Automatically detects risk scores ≥80 and offers guided assistance
+- **Context-Aware**: Loads last 3 scans with full breach data before each response
+- **High-Risk Alerts**: Automatically detects risk scores ≥70 and offers guided assistance
 - **Empathetic Mentor Tone**: Friendly, supportive communication style with simple language
 - **Data-Driven Insights**: Bases all answers on actual user scan history and breach findings
 - **Progress Tracking**: References improvements across multiple scans
 - **Technical Explanations**: Breaks down complex security concepts into everyday language
-- **Actionable Recommendations**: Provides specific, practical security steps
-- Multi-conversation support with persistent history
-- Automatic conversation title generation
-- Off-topic redirection to keep focus on security
+- **Actionable Recommendations**: Provides specific, step-by-step security guidance
+- **Multi-conversation support** with persistent history in database
+- **Automatic conversation title generation** from first message
+- **Off-topic redirection** to keep focus on security
+- **Graceful error handling** for API limits, missing keys, and model failures
+- **AI Separation**: OpenAI handles breach analysis; Gemini handles all chat interactions
 
 ### Dashboard Features
 1. **Metrics Overview**

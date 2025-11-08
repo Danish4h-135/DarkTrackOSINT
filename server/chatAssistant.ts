@@ -1,8 +1,10 @@
-import { GoogleGenerativeAI } from "@google/generative-ai";
+import { GoogleGenAI } from "@google/genai";
 import type { IStorage } from "./storage";
 
-// Initialize Gemini API
-const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY || "");
+// Initialize Gemini API with new SDK
+const genAI = new GoogleGenAI({ 
+  apiKey: process.env.GEMINI_API_KEY || "" 
+});
 
 /**
  * Chat with Gemini AI assistant for cybersecurity help
@@ -116,9 +118,6 @@ Remember:
 - Give practical, actionable steps anyone can follow
 - Stay friendly, supportive, and focused on cybersecurity only`;
 
-    // Initialize Gemini model (using gemini-pro for text conversations)
-    const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-    
     // CRITICAL: Always include system prompt in history to maintain cybersecurity guardrails
     // Build conversation history with system prompt as the first entry
     const historyWithSystemPrompt = [
@@ -136,19 +135,19 @@ Remember:
       })),
     ];
     
-    // Create chat session with system prompt always in history
-    const chat = model.startChat({
+    // Create chat session using new SDK with gemini-2.5-flash (latest stable model)
+    const chat = genAI.chats.create({
+      model: "gemini-2.5-flash",
       history: historyWithSystemPrompt,
-      generationConfig: {
+      config: {
         maxOutputTokens: 1500,
         temperature: 0.7,
       },
     });
 
     // Send user message (system prompt is already in history)
-    const result = await chat.sendMessage(userMessage);
-    const response = await result.response;
-    const aiReply = response.text();
+    const response = await chat.sendMessage({ message: userMessage });
+    const aiReply = response.text;
 
     // Validate response is on-topic (basic check)
     if (!aiReply || aiReply.trim().length === 0) {
