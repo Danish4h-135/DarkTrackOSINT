@@ -42,13 +42,18 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - Natural language summaries of breach data
 - Actionable security steps
 
-### AI Conversational Assistant
-- Real-time chat with DarkTrack AI cybersecurity assistant
-- Context-aware responses based on user's scan results
-- Multi-conversation support with history
-- Natural language explanations of security concepts
-- Persistent conversation history per user
+### AI Conversational Assistant (Specialized Cybersecurity Companion)
+- **Domain-Restricted AI**: Only discusses cybersecurity, privacy, and online safety topics
+- **Context-Aware**: Loads last 2-3 scans with full breach data before each response
+- **High-Risk Alerts**: Automatically detects risk scores ≥80 and offers guided assistance
+- **Empathetic Mentor Tone**: Friendly, supportive communication style with simple language
+- **Data-Driven Insights**: Bases all answers on actual user scan history and breach findings
+- **Progress Tracking**: References improvements across multiple scans
+- **Technical Explanations**: Breaks down complex security concepts into everyday language
+- **Actionable Recommendations**: Provides specific, practical security steps
+- Multi-conversation support with persistent history
 - Automatic conversation title generation
+- Off-topic redirection to keep focus on security
 
 ### Dashboard Features
 1. **Metrics Overview**
@@ -169,6 +174,7 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - `ISSUER_URL` - OIDC issuer URL (defaults to Replit)
 
 ## Recent Changes
+- 2025-11-08 (Latest): **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
 - 2025-11-08: Added AI conversational assistant with GPT-4o-mini, AES encryption for data protection, persistent chat history
 - 2025-11-07: Initial MVP implementation with full OSINT scanning, AI analysis, and authentication
 
