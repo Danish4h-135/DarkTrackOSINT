@@ -27,10 +27,16 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 ## Features
 
 ### Authentication
-- Multi-provider authentication via Replit Auth
-- Supports GitHub, Google, Apple, and email/password login
-- Session management with PostgreSQL storage
-- Protected routes with automatic token refresh
+- **Multi-method authentication system** with three signup/login options:
+  1. **Google OAuth** via Replit Auth (OpenID Connect)
+  2. **Email + Password** with bcrypt password hashing
+  3. **Phone + OTP** with SMS verification via Twilio
+- **Email verification flow** with SendGrid integration
+- **Phone users prompted to attach email** after OTP verification
+- **Session management** with PostgreSQL storage
+- **Password security** using PBKDF2 with 100,000 iterations
+- **Encrypted sensitive data** using CryptoJS AES encryption
+- **Protected routes** with automatic token refresh
 
 ### OSINT Scanning
 - Email breach detection via HaveIBeenPwned API
@@ -114,10 +120,17 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 ## API Endpoints
 
 ### Authentication
-- `GET /api/login` - Initiate login flow
+- `GET /api/login` - Initiate Google OAuth login flow
 - `GET /api/callback` - OAuth callback
 - `GET /api/logout` - Sign out
 - `GET /api/auth/user` - Get current user (protected)
+- `POST /api/auth/signup-email` - Sign up with email/password
+- `POST /api/auth/login-email` - Log in with email/password
+- `POST /api/auth/signup-phone` - Sign up with phone number (sends OTP)
+- `POST /api/auth/verify-otp` - Verify phone OTP code
+- `POST /api/auth/resend-otp` - Resend OTP code
+- `POST /api/auth/attach-email` - Attach email to phone-based account (protected)
+- `GET /api/auth/verify-email/:token` - Verify email address via token
 
 ### Scans
 - `POST /api/scan` - Run new OSINT scan (protected)
@@ -174,13 +187,19 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - `SESSION_SECRET` - Session encryption key
 - `OPENAI_API_KEY` - OpenAI API access for breach risk analysis
 - `GEMINI_API_KEY` - Google Gemini API access for conversational chatbot (@google/genai SDK)
-- `HAVEIBEENPWNED_API_KEY` - HaveIBeenPwned API access
+- `HIBP_API_KEY` - HaveIBeenPwned API access
+- `TWILIO_ACCOUNT_SID` - Twilio Account SID for SMS OTP
+- `TWILIO_AUTH_TOKEN` - Twilio Auth Token
+- `TWILIO_PHONE_NUMBER` - Twilio phone number (E.164 format)
+- `SENDGRID_API_KEY` - SendGrid API key for email verification
+- `SENDGRID_FROM_EMAIL` - Email address to send from
 - `ENCRYPTION_KEY` - AES encryption key for sensitive data (optional, auto-generated in dev)
 - `REPL_ID` - Replit application ID (auto-provided)
 - `ISSUER_URL` - OIDC issuer URL (defaults to Replit)
 
 ## Recent Changes
-- 2025-11-08 (Latest): **Daily AI Security Suggestions** - Implemented automatic daily refresh of AI-powered security tips on the dashboard. Added "Today's Security Tips" card that displays personalized recommendations, risk assessment, and summary. AI suggestions automatically regenerate every 24 hours or when missing, using OpenAI to analyze latest scan data. Added `aiGeneratedAt` timestamp tracking to database schema.
+- 2025-11-08 (Latest): **Multi-Method Authentication System** - Extended authentication to support three methods: Google OAuth (existing), Email+Password with PBKDF2 hashing, and Phone+OTP with Twilio SMS verification. Phone users are prompted to attach email after OTP verification. All sensitive data (email, phone, OTP codes) encrypted using CryptoJS AES. Added comprehensive auth routes and frontend pages with form validation. Fixed critical encryption issue by standardizing on single encrypt.ts implementation.
+- 2025-11-08: **Daily AI Security Suggestions** - Implemented automatic daily refresh of AI-powered security tips on the dashboard. Added "Today's Security Tips" card that displays personalized recommendations, risk assessment, and summary. AI suggestions automatically regenerate every 24 hours or when missing, using OpenAI to analyze latest scan data. Added `aiGeneratedAt` timestamp tracking to database schema.
 - 2025-11-08: **Professional Animations & API Integration** - Added comprehensive Framer Motion animations throughout the application with smooth transitions, counting animations, shimmer effects, hover interactions, and page transitions. Configured all API keys (OpenAI, Gemini, HaveIBeenPwned) for full functionality.
 - 2025-11-08: **Gemini SDK Migration** - Migrated from deprecated @google/generative-ai package to new @google/genai SDK with gemini-2.5-flash model for improved chatbot performance and latest features
 - 2025-11-08: **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
