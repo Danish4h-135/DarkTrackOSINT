@@ -200,7 +200,7 @@ export class DatabaseStorage implements IStorage {
     return {
       ...updated,
       email: decrypt(updated.email),
-      aiSummary: decrypt(updated.aiSummary),
+      aiSummary: updated.aiSummary ? decrypt(updated.aiSummary) : null,
     };
   }
 

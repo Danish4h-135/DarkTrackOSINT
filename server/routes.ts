@@ -63,6 +63,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         securedDataPercentage,
         aiSummary: summary,
         aiRecommendations: recommendations,
+        aiGeneratedAt: new Date(),
       });
 
       // Create breach records
@@ -323,6 +324,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         securedDataPercentage,
         aiSummary: summary,
         aiRecommendations: recommendations,
+        aiGeneratedAt: new Date(),
       });
 
       // Create breach records
@@ -384,6 +386,71 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const scans = await storage.getScansByUserId(userId);
       const recentScans = scans.slice(0, 10);
 
+      // Get the latest scan for daily AI suggestions
+      let latestScan = scans.length > 0 ? scans[0] : null;
+      let dailySuggestions = null;
+
+      // Check if we need to refresh AI suggestions (if >24 hours old or missing)
+      if (latestScan) {
+        const shouldRefreshAI = !latestScan.aiGeneratedAt || 
+          (Date.now() - latestScan.aiGeneratedAt.getTime()) > (24 * 60 * 60 * 1000);
+
+        if (shouldRefreshAI) {
+          // Regenerate AI suggestions using existing breach data
+          try {
+            const breaches = await storage.getBreachesByScanId(latestScan.id);
+            // Convert database breaches to BreachData format
+            const breachData = breaches.map(b => ({
+              name: b.name,
+              domain: b.domain ?? undefined,
+              breachDate: b.breachDate ?? undefined,
+              addedDate: b.addedDate ?? undefined,
+              modifiedDate: b.modifiedDate ?? undefined,
+              pwnCount: b.pwnCount ?? undefined,
+              description: b.description ?? undefined,
+              dataClasses: b.dataClasses ?? undefined,
+              isVerified: b.isVerified === 1,
+              isFabricated: b.isFabricated === 1,
+              isSensitive: b.isSensitive === 1,
+              isRetired: b.isRetired === 1,
+              isSpamList: b.isSpamList === 1,
+              isMalware: b.isMalware === 1,
+              severity: b.severity as "low" | "medium" | "high",
+            }));
+            const { summary, recommendations } = await generateAIAnalysis(
+              latestScan.email,
+              breachData,
+              latestScan.riskScore
+            );
+
+            // Update the scan with fresh AI suggestions
+            const updated = await storage.updateScanAISuggestions(
+              latestScan.id,
+              summary,
+              recommendations
+            );
+
+            if (updated) {
+              latestScan = updated;
+            }
+          } catch (error) {
+            console.error("Error refreshing AI suggestions:", error);
+            // Continue with existing suggestions if refresh fails
+          }
+        }
+
+        // Prepare daily suggestions for the frontend
+        if (latestScan.aiSummary && latestScan.aiRecommendations) {
+          dailySuggestions = {
+            summary: latestScan.aiSummary,
+            recommendations: latestScan.aiRecommendations,
+            generatedAt: latestScan.aiGeneratedAt,
+            email: latestScan.email,
+            riskScore: latestScan.riskScore,
+          };
+        }
+      }
+
       // Get breaches for each scan
       const scansWithBreaches = await Promise.all(
         recentScans.map(async (scan) => {
@@ -421,6 +488,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       res.json({
+        dailySuggestions,
         scans: scansWithBreaches,
         overview: {
           totalScans: scans.length,

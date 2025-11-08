@@ -18,6 +18,13 @@ import { apiRequest, queryClient } from "@/lib/queryClient";
 import type { Scan, Breach } from "@shared/schema";
 
 interface DashboardData {
+  dailySuggestions: {
+    summary: string;
+    recommendations: string[];
+    generatedAt: string | null;
+    email: string;
+    riskScore: number;
+  } | null;
   scans: (Scan & { breaches: Breach[] })[];
   overview: {
     totalScans: number;
@@ -196,6 +203,54 @@ export default function Dashboard() {
           }
         </p>
       </div>
+
+      {dashboardData?.dailySuggestions && (
+        <Card className="border-primary bg-primary/5">
+          <CardHeader>
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <CardTitle className="flex items-center gap-2">
+                <ShieldCheck className="h-5 w-5 text-primary" />
+                Today's Security Tips
+              </CardTitle>
+              {dashboardData.dailySuggestions.generatedAt && (
+                <Badge variant="outline" data-testid="badge-ai-generated">
+                  Updated {new Date(dashboardData.dailySuggestions.generatedAt).toLocaleDateString()}
+                </Badge>
+              )}
+            </div>
+            <CardDescription>
+              AI-powered recommendations for {dashboardData.dailySuggestions.email}
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="rounded-lg p-2 bg-primary/10 mt-1">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium">Security Overview</p>
+                <p className="text-sm text-muted-foreground">{dashboardData.dailySuggestions.summary}</p>
+              </div>
+              <RiskBadge score={dashboardData.dailySuggestions.riskScore} showBars={false} testId="risk-daily-tips" />
+            </div>
+            {dashboardData.dailySuggestions.recommendations.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium">Recommended Actions</p>
+                <ul className="space-y-2">
+                  {dashboardData.dailySuggestions.recommendations.map((rec, idx) => (
+                    <li key={idx} className="flex gap-3 text-sm" data-testid={`recommendation-${idx}`}>
+                      <div className="rounded-full bg-primary/10 h-6 w-6 flex items-center justify-center flex-shrink-0 mt-0.5">
+                        <span className="text-xs font-medium text-primary">{idx + 1}</span>
+                      </div>
+                      <span className="text-muted-foreground">{rec}</span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <Card className="p-6">
