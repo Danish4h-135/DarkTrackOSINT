@@ -39,7 +39,7 @@ export interface IStorage {
   updateUserVerificationToken(id: string, token: string, expiry: Date): Promise<void>;
   verifyUserEmail(id: string): Promise<void>;
   verifyUserPhone(id: string): Promise<void>;
-  attachEmailToUser(id: string, email: string, emailEncrypted: string): Promise<User | undefined>;
+  attachEmailToUser(id: string, email: string): Promise<User | undefined>;
   
   // Scan operations
   createScan(scan: InsertScan): Promise<Scan>;
@@ -118,7 +118,12 @@ export class DatabaseStorage implements IStorage {
   }
 
   async createUser(userData: UpsertUser): Promise<User> {
-    const [user] = await db.insert(users).values(userData).returning();
+    const encryptedData = {
+      ...userData,
+      emailEncrypted: userData.email ? encrypt(userData.email) : null,
+      phoneNumberEncrypted: userData.phoneNumber ? encrypt(userData.phoneNumber) : null,
+    };
+    const [user] = await db.insert(users).values(encryptedData).returning();
     return user;
   }
 
@@ -150,7 +155,8 @@ export class DatabaseStorage implements IStorage {
       .where(eq(users.id, id));
   }
 
-  async attachEmailToUser(id: string, email: string, emailEncrypted: string): Promise<User | undefined> {
+  async attachEmailToUser(id: string, email: string): Promise<User | undefined> {
+    const emailEncrypted = encrypt(email);
     const [user] = await db
       .update(users)
       .set({ email, emailEncrypted, updatedAt: new Date() })

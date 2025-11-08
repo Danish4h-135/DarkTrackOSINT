@@ -30,13 +30,11 @@ export function registerAuthRoutes(app: Express) {
       }
 
       const passwordHash = await AuthService.hashPassword(password);
-      const emailEncrypted = AuthService.encrypt(email);
       const verificationToken = AuthService.generateVerificationToken();
       const verificationTokenExpiry = AuthService.getTokenExpiryTime();
 
       const user = await storage.createUser({
         email,
-        emailEncrypted,
         passwordHash,
         firstName,
         lastName,
@@ -140,13 +138,11 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ message: "Phone number already registered" });
       }
 
-      const phoneNumberEncrypted = AuthService.encrypt(phoneNumber);
       const otpCode = AuthService.generateOTP();
       const otpExpiry = AuthService.getOTPExpiryTime();
 
       const user = await storage.createUser({
         phoneNumber,
-        phoneNumberEncrypted,
         firstName,
         lastName,
         authProvider: "phone",
@@ -251,11 +247,10 @@ export function registerAuthRoutes(app: Express) {
         return res.status(400).json({ message: "Email already in use" });
       }
 
-      const emailEncrypted = AuthService.encrypt(email);
       const verificationToken = AuthService.generateVerificationToken();
       const verificationTokenExpiry = AuthService.getTokenExpiryTime();
 
-      await storage.attachEmailToUser(userId, email, emailEncrypted);
+      await storage.attachEmailToUser(userId, email);
       await storage.updateUserVerificationToken(userId, verificationToken, verificationTokenExpiry);
 
       const baseUrl = `${req.protocol}://${req.hostname}`;

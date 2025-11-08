@@ -1,8 +1,5 @@
 import crypto from 'crypto';
 
-const ENCRYPTION_KEY = process.env.ENCRYPTION_KEY || 'dev-default-32-character-key!!';
-const IV_LENGTH = 16;
-
 export class AuthService {
   static async hashPassword(password: string): Promise<string> {
     return new Promise((resolve, reject) => {
@@ -30,25 +27,6 @@ export class AuthService {
 
   static generateVerificationToken(): string {
     return crypto.randomBytes(32).toString('hex');
-  }
-
-  static encrypt(text: string): string {
-    const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, '!').substring(0, 32));
-    const iv = crypto.randomBytes(IV_LENGTH);
-    const cipher = crypto.createCipheriv('aes-256-cbc', key, iv);
-    let encrypted = cipher.update(text, 'utf8', 'hex');
-    encrypted += cipher.final('hex');
-    return iv.toString('hex') + ':' + encrypted;
-  }
-
-  static decrypt(text: string): string {
-    const key = Buffer.from(ENCRYPTION_KEY.padEnd(32, '!').substring(0, 32));
-    const [ivHex, encryptedHex] = text.split(':');
-    const iv = Buffer.from(ivHex, 'hex');
-    const decipher = crypto.createDecipheriv('aes-256-cbc', key, iv);
-    let decrypted = decipher.update(encryptedHex, 'hex', 'utf8');
-    decrypted += decipher.final('utf8');
-    return decrypted;
   }
 
   static async sendOTP(phoneNumber: string, otpCode: string): Promise<boolean> {
