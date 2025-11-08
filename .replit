@@ -18,6 +18,10 @@ externalPort = 80
 localPort = 41107
 externalPort = 3000
 
+[[ports]]
+localPort = 46569
+externalPort = 3001
+
 [env]
 PORT = "5000"
 
@@ -44,3 +48,4 @@ waitForPort = 5000
 
 [agent]
 integrations = ["javascript_database:1.0.0", "javascript_openai:1.0.0", "javascript_log_in_with_replit:1.0.0"]
+expertMode = true
