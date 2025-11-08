@@ -23,6 +23,7 @@ export interface IStorage {
   // User operations - required for Replit Auth
   getUser(id: string): Promise<User | undefined>;
   upsertUser(user: UpsertUser): Promise<User>;
+  updateUserManualLookupTimestamp(id: string): Promise<void>;
   
   // Scan operations
   createScan(scan: InsertScan): Promise<Scan>;
@@ -66,6 +67,13 @@ export class DatabaseStorage implements IStorage {
       })
       .returning();
     return user;
+  }
+
+  async updateUserManualLookupTimestamp(id: string): Promise<void> {
+    await db
+      .update(users)
+      .set({ lastManualLookupAt: new Date() })
+      .where(eq(users.id, id));
   }
 
   // Scan operations

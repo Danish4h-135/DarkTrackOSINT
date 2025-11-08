@@ -163,6 +163,247 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Manual lookup endpoint - one per 24 hours
+  app.post('/api/lookup', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { email } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Validate email format
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return res.status(400).json({ message: "Invalid email format" });
+      }
+
+      // Check quota - one lookup per 24 hours
+      const user = await storage.getUser(userId);
+      if (user?.lastManualLookupAt) {
+        const hoursSinceLastLookup = (Date.now() - user.lastManualLookupAt.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastLookup < 24) {
+          const nextAvailableAt = new Date(user.lastManualLookupAt.getTime() + 24 * 60 * 60 * 1000);
+          return res.status(429).json({
+            error: true,
+            message: `You can perform one manual lookup every 24 hours. Next one available at: ${nextAvailableAt.toISOString()}`,
+            nextAvailableAt: nextAvailableAt.toISOString(),
+          });
+        }
+      }
+
+      // Run OSINT analysis (but don't save)
+      const breachData = await checkHaveIBeenPwned(email);
+      const breachCount = breachData.length;
+      const riskScore = calculateRiskScore(breachData);
+      const { summary, recommendations } = await generateAIAnalysis(email, breachData, riskScore);
+
+      // Update user's last lookup timestamp
+      await storage.updateUserManualLookupTimestamp(userId);
+
+      // Return results without saving
+      res.json({
+        email,
+        breachCount,
+        riskScore,
+        securedDataPercentage: 100 - riskScore,
+        aiSummary: summary,
+        aiRecommendations: recommendations,
+        breaches: breachData,
+      });
+    } catch (error: any) {
+      console.error("Error running manual lookup:", error);
+      res.status(500).json({ message: error.message || "Failed to run lookup" });
+    }
+  });
+
+  // Save manual lookup results
+  app.post('/api/lookup/save', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { email, breachCount, riskScore, securedDataPercentage, aiSummary, aiRecommendations, breaches } = req.body;
+
+      if (!email) {
+        return res.status(400).json({ message: "Email is required" });
+      }
+
+      // Create scan record
+      const scan = await storage.createScan({
+        userId,
+        email,
+        breachCount: breachCount || 0,
+        profilesDetected: breachCount > 0 ? 1 : 0,
+        riskScore: riskScore || 0,
+        securedDataPercentage: securedDataPercentage || 100,
+        aiSummary: aiSummary || null,
+        aiRecommendations: aiRecommendations || [],
+      });
+
+      // Create breach records if any
+      if (breaches && breaches.length > 0) {
+        const breachRecords = breaches.map((breach: any) => ({
+          scanId: scan.id,
+          name: breach.name,
+          domain: breach.domain,
+          breachDate: breach.breachDate,
+          addedDate: breach.addedDate,
+          modifiedDate: breach.modifiedDate,
+          pwnCount: breach.pwnCount,
+          description: breach.description,
+          dataClasses: breach.dataClasses,
+          isVerified: breach.isVerified ? 1 : 0,
+          isFabricated: breach.isFabricated ? 1 : 0,
+          isSensitive: breach.isSensitive ? 1 : 0,
+          isRetired: breach.isRetired ? 1 : 0,
+          isSpamList: breach.isSpamList ? 1 : 0,
+          isMalware: breach.isMalware ? 1 : 0,
+          severity: breach.severity,
+        }));
+
+        await storage.createBreaches(breachRecords);
+      }
+
+      res.json(scan);
+    } catch (error: any) {
+      console.error("Error saving lookup results:", error);
+      res.status(500).json({ message: error.message || "Failed to save results" });
+    }
+  });
+
+  // Scan user's own data endpoint
+  app.post('/api/scan/self', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      if (!user?.email) {
+        return res.status(400).json({ message: "User email not found. Please update your profile." });
+      }
+
+      // Run OSINT analysis on user's own email
+      const breachData = await checkHaveIBeenPwned(user.email);
+      const breachCount = breachData.length;
+      const profilesDetected = breachCount > 0 ? 1 : 0;
+      const riskScore = calculateRiskScore(breachData);
+      const securedDataPercentage = 100 - riskScore;
+
+      // Generate AI analysis
+      const { summary, recommendations } = await generateAIAnalysis(
+        user.email,
+        breachData,
+        riskScore
+      );
+
+      // Create scan record
+      const scan = await storage.createScan({
+        userId,
+        email: user.email,
+        breachCount,
+        profilesDetected,
+        riskScore,
+        securedDataPercentage,
+        aiSummary: summary,
+        aiRecommendations: recommendations,
+      });
+
+      // Create breach records
+      if (breachData.length > 0) {
+        const breachRecords = breachData.map(breach => ({
+          scanId: scan.id,
+          name: breach.name,
+          domain: breach.domain,
+          breachDate: breach.breachDate,
+          addedDate: breach.addedDate,
+          modifiedDate: breach.modifiedDate,
+          pwnCount: breach.pwnCount,
+          description: breach.description,
+          dataClasses: breach.dataClasses,
+          isVerified: breach.isVerified ? 1 : 0,
+          isFabricated: breach.isFabricated ? 1 : 0,
+          isSensitive: breach.isSensitive ? 1 : 0,
+          isRetired: breach.isRetired ? 1 : 0,
+          isSpamList: breach.isSpamList ? 1 : 0,
+          isMalware: breach.isMalware ? 1 : 0,
+          severity: breach.severity,
+        }));
+
+        await storage.createBreaches(breachRecords);
+      }
+
+      res.json(scan);
+    } catch (error: any) {
+      console.error("Error running self scan:", error);
+      res.status(500).json({ message: error.message || "Failed to run scan" });
+    }
+  });
+
+  // Dashboard endpoint - returns scan history and quota status
+  app.get('/api/dashboard', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const user = await storage.getUser(userId);
+
+      // Get recent scans (most recent 10)
+      const scans = await storage.getScansByUserId(userId);
+      const recentScans = scans.slice(0, 10);
+
+      // Get breaches for each scan
+      const scansWithBreaches = await Promise.all(
+        recentScans.map(async (scan) => {
+          const breaches = await storage.getBreachesByScanId(scan.id);
+          return { ...scan, breaches };
+        })
+      );
+
+      // Calculate overall metrics
+      const avgRiskScore = scans.length > 0
+        ? Math.round(scans.reduce((sum, scan) => sum + scan.riskScore, 0) / scans.length)
+        : 0;
+      
+      const severityCounts = scansWithBreaches.reduce(
+        (acc, scan) => {
+          scan.breaches.forEach((breach) => {
+            const severity = breach.severity as "high" | "medium" | "low";
+            acc[severity] = (acc[severity] || 0) + 1;
+          });
+          return acc;
+        },
+        { high: 0, medium: 0, low: 0 }
+      );
+
+      // Check manual lookup quota
+      let manualLookupAvailable = true;
+      let nextLookupAvailableAt = null;
+      
+      if (user?.lastManualLookupAt) {
+        const hoursSinceLastLookup = (Date.now() - user.lastManualLookupAt.getTime()) / (1000 * 60 * 60);
+        if (hoursSinceLastLookup < 24) {
+          manualLookupAvailable = false;
+          nextLookupAvailableAt = new Date(user.lastManualLookupAt.getTime() + 24 * 60 * 60 * 1000).toISOString();
+        }
+      }
+
+      res.json({
+        scans: scansWithBreaches,
+        overview: {
+          totalScans: scans.length,
+          avgRiskScore,
+          highRiskFindings: severityCounts.high,
+          mediumRiskFindings: severityCounts.medium,
+          lowRiskFindings: severityCounts.low,
+        },
+        quota: {
+          manualLookupAvailable,
+          nextLookupAvailableAt,
+        },
+      });
+    } catch (error) {
+      console.error("Error fetching dashboard data:", error);
+      res.status(500).json({ message: "Failed to fetch dashboard data" });
+    }
+  });
+
   // AI Chat endpoints
   const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
