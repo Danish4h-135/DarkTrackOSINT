@@ -89,6 +89,27 @@ export const insertBreachSchema = createInsertSchema(breaches).omit({
 export type InsertBreach = z.infer<typeof insertBreachSchema>;
 export type Breach = typeof breaches.$inferSelect;
 
+// Vulnerabilities table - stores actionable security vulnerabilities from scans
+export const vulnerabilities = pgTable("vulnerabilities", {
+  id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),
+  scanId: varchar("scan_id").notNull().references(() => scans.id),
+  title: varchar("title").notNull(),
+  description: text("description"),
+  metadataEnc: text("metadata_enc"), // Encrypted JSON metadata (breach details, etc)
+  riskCategory: varchar("risk_category").notNull().default("medium"), // low, medium, high, critical
+  resolved: integer("resolved").notNull().default(0), // 0 = false, 1 = true
+  resolvedAt: timestamp("resolved_at"),
+  createdAt: timestamp("created_at").defaultNow(),
+});
+
+export const insertVulnerabilitySchema = createInsertSchema(vulnerabilities).omit({
+  id: true,
+  createdAt: true,
+});
+
+export type InsertVulnerability = z.infer<typeof insertVulnerabilitySchema>;
+export type Vulnerability = typeof vulnerabilities.$inferSelect;
+
 // Conversations table - stores AI chat sessions
 export const conversations = pgTable("conversations", {
   id: varchar("id").primaryKey().default(sql`gen_random_uuid()`),

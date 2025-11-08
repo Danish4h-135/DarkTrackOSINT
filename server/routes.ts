@@ -86,7 +86,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           severity: breach.severity,
         }));
 
-        await storage.createBreaches(breachRecords);
+        const createdBreaches = await storage.createBreaches(breachRecords);
+
+        // Create vulnerability records from breaches
+        const vulnerabilityRecords = createdBreaches.map(breach => ({
+          scanId: scan.id,
+          title: `${breach.name} Data Breach`,
+          description: breach.description || `Your data was exposed in the ${breach.name} breach.`,
+          metadataEnc: JSON.stringify({
+            breachId: breach.id,
+            domain: breach.domain,
+            breachDate: breach.breachDate,
+            pwnCount: breach.pwnCount,
+            dataClasses: breach.dataClasses,
+          }),
+          riskCategory: breach.severity as string,
+          resolved: 0,
+        }));
+
+        await storage.createVulnerabilities(vulnerabilityRecords);
       }
 
       res.json(scan);
@@ -328,7 +346,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
           severity: breach.severity,
         }));
 
-        await storage.createBreaches(breachRecords);
+        const createdBreaches = await storage.createBreaches(breachRecords);
+
+        // Create vulnerability records from breaches
+        const vulnerabilityRecords = createdBreaches.map(breach => ({
+          scanId: scan.id,
+          title: `${breach.name} Data Breach`,
+          description: breach.description || `Your data was exposed in the ${breach.name} breach.`,
+          metadataEnc: JSON.stringify({
+            breachId: breach.id,
+            domain: breach.domain,
+            breachDate: breach.breachDate,
+            pwnCount: breach.pwnCount,
+            dataClasses: breach.dataClasses,
+          }),
+          riskCategory: breach.severity as string,
+          resolved: 0,
+        }));
+
+        await storage.createVulnerabilities(vulnerabilityRecords);
       }
 
       res.json(scan);
@@ -506,6 +542,55 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching conversation:", error);
       res.status(500).json({ message: "Failed to fetch conversation" });
+    }
+  });
+
+  // Vulnerability endpoints
+  
+  // Get open vulnerabilities for current user
+  app.get('/api/vulnerabilities/open', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const vulnerabilities = await storage.getOpenVulnerabilitiesByUserId(userId);
+      res.json(vulnerabilities);
+    } catch (error) {
+      console.error("Error fetching open vulnerabilities:", error);
+      res.status(500).json({ message: "Failed to fetch vulnerabilities" });
+    }
+  });
+
+  // Get resolved vulnerabilities (history) for current user
+  app.get('/api/vulnerabilities/history', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const vulnerabilities = await storage.getResolvedVulnerabilitiesByUserId(userId);
+      res.json(vulnerabilities);
+    } catch (error) {
+      console.error("Error fetching vulnerability history:", error);
+      res.status(500).json({ message: "Failed to fetch vulnerability history" });
+    }
+  });
+
+  // Resolve a vulnerability
+  app.post('/api/vulnerabilities/:id/resolve', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+
+      // First, verify this vulnerability belongs to the user
+      const allVulns = await storage.getOpenVulnerabilitiesByUserId(userId);
+      const vuln = allVulns.find(v => v.id === id);
+      
+      if (!vuln) {
+        return res.status(404).json({ message: "Vulnerability not found or already resolved" });
+      }
+
+      // Mark as resolved
+      const resolved = await storage.resolveVulnerability(id);
+      res.json(resolved);
+    } catch (error) {
+      console.error("Error resolving vulnerability:", error);
+      res.status(500).json({ message: "Failed to resolve vulnerability" });
     }
   });
 

@@ -2,6 +2,7 @@ import {
   users,
   scans,
   breaches,
+  vulnerabilities,
   conversations,
   messages,
   type User,
@@ -10,13 +11,15 @@ import {
   type InsertScan,
   type Breach,
   type InsertBreach,
+  type Vulnerability,
+  type InsertVulnerability,
   type Conversation,
   type InsertConversation,
   type Message,
   type InsertMessage,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, and } from "drizzle-orm";
 import { encrypt, decrypt } from "./encrypt";
 
 export interface ScanWithBreaches extends Scan {
@@ -40,6 +43,14 @@ export interface IStorage {
   createBreach(breach: InsertBreach): Promise<Breach>;
   createBreaches(breaches: InsertBreach[]): Promise<Breach[]>;
   getBreachesByScanId(scanId: string): Promise<Breach[]>;
+  
+  // Vulnerability operations
+  createVulnerability(vulnerability: InsertVulnerability): Promise<Vulnerability>;
+  createVulnerabilities(vulnerabilities: InsertVulnerability[]): Promise<Vulnerability[]>;
+  getVulnerabilitiesByScanId(scanId: string): Promise<Vulnerability[]>;
+  getOpenVulnerabilitiesByUserId(userId: string): Promise<Vulnerability[]>;
+  getResolvedVulnerabilitiesByUserId(userId: string): Promise<Vulnerability[]>;
+  resolveVulnerability(id: string): Promise<Vulnerability | undefined>;
   
   // Conversation operations - AI chat
   createConversation(conversation: InsertConversation): Promise<Conversation>;
@@ -279,6 +290,148 @@ export class DatabaseStorage implements IStorage {
       .from(messages)
       .where(eq(messages.conversationId, conversationId))
       .orderBy(messages.createdAt);
+  }
+
+  // Vulnerability operations
+  async createVulnerability(vulnerabilityData: InsertVulnerability): Promise<Vulnerability> {
+    const [vulnerability] = await db
+      .insert(vulnerabilities)
+      .values([{
+        ...vulnerabilityData,
+        title: encrypt(vulnerabilityData.title),
+        description: vulnerabilityData.description ? encrypt(vulnerabilityData.description) : null,
+        metadataEnc: vulnerabilityData.metadataEnc ? encrypt(vulnerabilityData.metadataEnc) : null,
+      }])
+      .returning();
+    
+    // Decrypt for return
+    return {
+      ...vulnerability,
+      title: decrypt(vulnerability.title),
+      description: vulnerability.description ? decrypt(vulnerability.description) : null,
+      metadataEnc: vulnerability.metadataEnc ? decrypt(vulnerability.metadataEnc) : null,
+    };
+  }
+
+  async createVulnerabilities(vulnerabilitiesData: InsertVulnerability[]): Promise<Vulnerability[]> {
+    if (vulnerabilitiesData.length === 0) return [];
+    
+    const normalized = vulnerabilitiesData.map(vuln => ({
+      ...vuln,
+      title: encrypt(vuln.title),
+      description: vuln.description ? encrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? encrypt(vuln.metadataEnc) : null,
+    }));
+    
+    const created = await db
+      .insert(vulnerabilities)
+      .values(normalized)
+      .returning();
+    
+    // Decrypt for return
+    return created.map(vuln => ({
+      ...vuln,
+      title: decrypt(vuln.title),
+      description: vuln.description ? decrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? decrypt(vuln.metadataEnc) : null,
+    }));
+  }
+
+  async getVulnerabilitiesByScanId(scanId: string): Promise<Vulnerability[]> {
+    const vulnList = await db
+      .select()
+      .from(vulnerabilities)
+      .where(eq(vulnerabilities.scanId, scanId))
+      .orderBy(desc(vulnerabilities.createdAt));
+    
+    // Decrypt sensitive fields
+    return vulnList.map(vuln => ({
+      ...vuln,
+      title: decrypt(vuln.title),
+      description: vuln.description ? decrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? decrypt(vuln.metadataEnc) : null,
+    }));
+  }
+
+  async getOpenVulnerabilitiesByUserId(userId: string): Promise<Vulnerability[]> {
+    const vulnList = await db
+      .select({
+        id: vulnerabilities.id,
+        scanId: vulnerabilities.scanId,
+        title: vulnerabilities.title,
+        description: vulnerabilities.description,
+        metadataEnc: vulnerabilities.metadataEnc,
+        riskCategory: vulnerabilities.riskCategory,
+        resolved: vulnerabilities.resolved,
+        resolvedAt: vulnerabilities.resolvedAt,
+        createdAt: vulnerabilities.createdAt,
+      })
+      .from(vulnerabilities)
+      .innerJoin(scans, eq(vulnerabilities.scanId, scans.id))
+      .where(and(
+        eq(scans.userId, userId),
+        eq(vulnerabilities.resolved, 0)
+      ))
+      .orderBy(desc(vulnerabilities.createdAt));
+    
+    // Decrypt sensitive fields
+    return vulnList.map((vuln: any) => ({
+      ...vuln,
+      title: decrypt(vuln.title),
+      description: vuln.description ? decrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? decrypt(vuln.metadataEnc) : null,
+    }));
+  }
+
+  async getResolvedVulnerabilitiesByUserId(userId: string): Promise<Vulnerability[]> {
+    const vulnList = await db
+      .select({
+        id: vulnerabilities.id,
+        scanId: vulnerabilities.scanId,
+        title: vulnerabilities.title,
+        description: vulnerabilities.description,
+        metadataEnc: vulnerabilities.metadataEnc,
+        riskCategory: vulnerabilities.riskCategory,
+        resolved: vulnerabilities.resolved,
+        resolvedAt: vulnerabilities.resolvedAt,
+        createdAt: vulnerabilities.createdAt,
+      })
+      .from(vulnerabilities)
+      .innerJoin(scans, eq(vulnerabilities.scanId, scans.id))
+      .where(and(
+        eq(scans.userId, userId),
+        eq(vulnerabilities.resolved, 1)
+      ))
+      .orderBy(desc(vulnerabilities.resolvedAt));
+    
+    // Decrypt sensitive fields
+    return vulnList.map((vuln: any) => ({
+      ...vuln,
+      title: decrypt(vuln.title),
+      description: vuln.description ? decrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? decrypt(vuln.metadataEnc) : null,
+    }));
+  }
+
+  async resolveVulnerability(id: string): Promise<Vulnerability | undefined> {
+    const [vuln] = await db
+      .update(vulnerabilities)
+      .set({ 
+        resolved: 1,
+        resolvedAt: new Date(),
+      })
+      .where(eq(vulnerabilities.id, id))
+      .returning();
+    
+    if (!vuln) return undefined;
+    
+    // Decrypt for return
+    return {
+      ...vuln,
+      title: decrypt(vuln.title),
+      description: vuln.description ? decrypt(vuln.description) : null,
+      metadataEnc: vuln.metadataEnc ? decrypt(vuln.metadataEnc) : null,
+    };
   }
 }
 
