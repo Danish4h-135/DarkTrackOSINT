@@ -55,7 +55,10 @@ export class DatabaseStorage implements IStorage {
   async createScan(scanData: InsertScan): Promise<Scan> {
     const [scan] = await db
       .insert(scans)
-      .values(scanData)
+      .values([{
+        ...scanData,
+        aiRecommendations: scanData.aiRecommendations ? [...scanData.aiRecommendations] : undefined,
+      }])
       .returning();
     return scan;
   }
@@ -87,16 +90,23 @@ export class DatabaseStorage implements IStorage {
   async createBreach(breachData: InsertBreach): Promise<Breach> {
     const [breach] = await db
       .insert(breaches)
-      .values(breachData)
+      .values([{
+        ...breachData,
+        dataClasses: breachData.dataClasses ? [...breachData.dataClasses] : undefined,
+      }])
       .returning();
     return breach;
   }
 
   async createBreaches(breachesData: InsertBreach[]): Promise<Breach[]> {
     if (breachesData.length === 0) return [];
+    const normalizedBreaches = breachesData.map(breach => ({
+      ...breach,
+      dataClasses: breach.dataClasses ? [...breach.dataClasses] : undefined,
+    }));
     return await db
       .insert(breaches)
-      .values(breachesData)
+      .values(normalizedBreaches)
       .returning();
   }
 
