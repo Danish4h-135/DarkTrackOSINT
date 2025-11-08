@@ -409,7 +409,7 @@ export default function Dashboard() {
                 {latestScan.breaches && latestScan.breaches.length > 0 ? (
                   <div className="space-y-4">
                     {latestScan.breaches.map((breach) => (
-                      <BreachCard key={breach.id} breach={breach} />
+                      <BreachCard key={breach.id} breach={breach} scanId={latestScan.id} />
                     ))}
                   </div>
                 ) : (

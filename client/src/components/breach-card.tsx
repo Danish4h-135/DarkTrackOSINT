@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { AlertTriangle, ChevronDown, ChevronUp, Calendar, Database } from "lucide-react";
+import { AlertTriangle, ChevronDown, ChevronUp, Calendar, Database, MessageCircle } from "lucide-react";
+import { useLocation } from "wouter";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -9,10 +10,12 @@ import { motion, AnimatePresence } from "framer-motion";
 
 interface BreachCardProps {
   breach: Breach;
+  scanId?: string;
 }
 
-export function BreachCard({ breach }: BreachCardProps) {
+export function BreachCard({ breach, scanId }: BreachCardProps) {
   const [expanded, setExpanded] = useState(false);
+  const [, setLocation] = useLocation();
 
   const getSeverityVariant = (severity: string) => {
     switch (severity) {
@@ -126,25 +129,50 @@ export function BreachCard({ breach }: BreachCardProps) {
               )}
             </AnimatePresence>
 
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => setExpanded(!expanded)}
-              className="mt-2 -ml-2 transition-all hover:scale-105"
-              data-testid={`button-expand-breach-${breach.id}`}
-            >
-              {expanded ? (
-                <>
-                  <ChevronUp className="h-4 w-4 mr-1" />
-                  Show Less
-                </>
-              ) : (
-                <>
-                  <ChevronDown className="h-4 w-4 mr-1" />
-                  Show More
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2 items-center mt-2 -ml-2">
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setExpanded(!expanded)}
+                className="transition-all hover:scale-105"
+                data-testid={`button-expand-breach-${breach.id}`}
+              >
+                {expanded ? (
+                  <>
+                    <ChevronUp className="h-4 w-4 mr-1" />
+                    Show Less
+                  </>
+                ) : (
+                  <>
+                    <ChevronDown className="h-4 w-4 mr-1" />
+                    Show More
+                  </>
+                )}
+              </Button>
+              
+              <Button
+                variant="default"
+                size="sm"
+                onClick={() => {
+                  const breachContext = {
+                    scanId: scanId || breach.scanId,
+                    breachId: breach.id,
+                    breachName: breach.name,
+                    domain: breach.domain,
+                    severity: breach.severity,
+                    description: breach.description,
+                    dataClasses: breach.dataClasses,
+                  };
+                  sessionStorage.setItem('breachContext', JSON.stringify(breachContext));
+                  setLocation('/chat');
+                }}
+                className="transition-all hover:scale-105"
+                data-testid={`button-solve-breach-${breach.id}`}
+              >
+                <MessageCircle className="h-4 w-4 mr-1" />
+                Solve
+              </Button>
+            </div>
           </div>
         </div>
       </Card>

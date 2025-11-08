@@ -38,6 +38,7 @@ export default function Chat() {
   const [inputMessage, setInputMessage] = useState("");
   const [showSidebar, setShowSidebar] = useState(false);
   const [showScrollButton, setShowScrollButton] = useState(false);
+  const [breachContextProcessed, setBreachContextProcessed] = useState(false);
   const { toast } = useToast();
   
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -124,6 +125,41 @@ export default function Chat() {
       scrollToBottom("smooth");
     }
   }, [sendMessageMutation.isPending]);
+
+  // Handle breach context from sessionStorage
+  useEffect(() => {
+    if (breachContextProcessed) return;
+
+    const breachContextStr = sessionStorage.getItem('breachContext');
+    if (breachContextStr) {
+      try {
+        const breachContext = JSON.parse(breachContextStr);
+        sessionStorage.removeItem('breachContext');
+        setBreachContextProcessed(true);
+
+        const dataClassesStr = breachContext.dataClasses && breachContext.dataClasses.length > 0
+          ? ` The compromised data includes: ${breachContext.dataClasses.join(', ')}.`
+          : '';
+
+        const domainStr = breachContext.domain ? ` (Domain: ${breachContext.domain})` : '';
+        
+        const message = `Please help me resolve this ${breachContext.severity} severity vulnerability: ${breachContext.breachName}${domainStr}.${dataClassesStr} Provide step-by-step remediation instructions and security best practices.`;
+
+        sendMessageMutation.mutate({
+          conversationId: currentConversationId || undefined,
+          message,
+        });
+
+        toast({
+          title: "AI Assistant Activated",
+          description: "Analyzing breach and generating remediation steps...",
+        });
+      } catch (error) {
+        console.error("Failed to parse breach context:", error);
+        sessionStorage.removeItem('breachContext');
+      }
+    }
+  }, [breachContextProcessed, currentConversationId, sendMessageMutation, toast]);
 
   return (
     <div className="relative h-full flex">
