@@ -19,7 +19,7 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - **Drizzle ORM** for database operations
 - **Replit Auth** (OpenID Connect) - supports GitHub, Google, Apple, email/password
 - **OpenAI GPT-4o-mini** for AI-powered risk analysis and breach summaries
-- **Google Gemini (gemini-pro)** for intelligent conversational chatbot assistant
+- **Google Gemini 2.5 Flash** (@google/genai SDK) for intelligent conversational chatbot assistant
 - **HaveIBeenPwned API** for breach data
 - **CryptoJS** for AES encryption of sensitive data
 
@@ -44,7 +44,7 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - Actionable security steps
 
 ### AI Conversational Assistant (Powered by Google Gemini)
-- **Gemini Pro Model**: Uses Google's latest gemini-pro for natural conversations
+- **Gemini 2.5 Flash Model**: Uses Google's latest gemini-2.5-flash via @google/genai SDK for natural conversations
 - **Domain-Restricted AI**: Only discusses cybersecurity, privacy, and online safety topics
 - **Context-Aware**: Loads last 3 scans with full breach data before each response
 - **High-Risk Alerts**: Automatically detects risk scores ≥70 and offers guided assistance
@@ -171,14 +171,16 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 ## Environment Variables
 - `DATABASE_URL` - PostgreSQL connection string
 - `SESSION_SECRET` - Session encryption key
-- `OPENAI_API_KEY` - OpenAI API access for AI analysis and chat
+- `OPENAI_API_KEY` - OpenAI API access for breach risk analysis
+- `GEMINI_API_KEY` - Google Gemini API access for conversational chatbot (@google/genai SDK)
 - `HAVEIBEENPWNED_API_KEY` - HaveIBeenPwned API access
 - `ENCRYPTION_KEY` - AES encryption key for sensitive data (optional, auto-generated in dev)
 - `REPL_ID` - Replit application ID (auto-provided)
 - `ISSUER_URL` - OIDC issuer URL (defaults to Replit)
 
 ## Recent Changes
-- 2025-11-08 (Latest): **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
+- 2025-11-08 (Latest): **Gemini SDK Migration** - Migrated from deprecated @google/generative-ai package to new @google/genai SDK with gemini-2.5-flash model for improved chatbot performance and latest features
+- 2025-11-08: **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
 - 2025-11-08: Added AI conversational assistant with GPT-4o-mini, AES encryption for data protection, persistent chat history
 - 2025-11-07: Initial MVP implementation with full OSINT scanning, AI analysis, and authentication
 
