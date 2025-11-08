@@ -19,6 +19,10 @@ import { db } from "./db";
 import { eq, desc } from "drizzle-orm";
 import { encrypt, decrypt } from "./encrypt";
 
+export interface ScanWithBreaches extends Scan {
+  breaches: Breach[];
+}
+
 export interface IStorage {
   // User operations - required for Replit Auth
   getUser(id: string): Promise<User | undefined>;
@@ -30,6 +34,7 @@ export interface IStorage {
   getLatestScanByUserId(userId: string): Promise<Scan | undefined>;
   getScansByUserId(userId: string): Promise<Scan[]>;
   getScanById(id: string): Promise<Scan | undefined>;
+  getRecentScansWithBreaches(userId: string, limit: number): Promise<ScanWithBreaches[]>;
   
   // Breach operations
   createBreach(breach: InsertBreach): Promise<Breach>;
@@ -140,6 +145,30 @@ export class DatabaseStorage implements IStorage {
       email: decrypt(scan.email),
       aiSummary: scan.aiSummary ? decrypt(scan.aiSummary) : null,
     };
+  }
+
+  async getRecentScansWithBreaches(userId: string, limit: number): Promise<ScanWithBreaches[]> {
+    const scanList = await db
+      .select()
+      .from(scans)
+      .where(eq(scans.userId, userId))
+      .orderBy(desc(scans.createdAt))
+      .limit(limit);
+    
+    // Decrypt scans and get their breaches
+    const scansWithBreaches = await Promise.all(
+      scanList.map(async (scan) => {
+        const breachList = await this.getBreachesByScanId(scan.id);
+        return {
+          ...scan,
+          email: decrypt(scan.email),
+          aiSummary: scan.aiSummary ? decrypt(scan.aiSummary) : null,
+          breaches: breachList,
+        };
+      })
+    );
+    
+    return scansWithBreaches;
   }
 
   // Breach operations
