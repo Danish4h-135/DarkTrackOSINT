@@ -180,7 +180,8 @@ DarkTrack is an ethical OSINT (Open Source Intelligence) dashboard that analyzes
 - `ISSUER_URL` - OIDC issuer URL (defaults to Replit)
 
 ## Recent Changes
-- 2025-11-08 (Latest): **Professional Animations & API Integration** - Added comprehensive Framer Motion animations throughout the application with smooth transitions, counting animations, shimmer effects, hover interactions, and page transitions. Configured all API keys (OpenAI, Gemini, HaveIBeenPwned) for full functionality.
+- 2025-11-08 (Latest): **Daily AI Security Suggestions** - Implemented automatic daily refresh of AI-powered security tips on the dashboard. Added "Today's Security Tips" card that displays personalized recommendations, risk assessment, and summary. AI suggestions automatically regenerate every 24 hours or when missing, using OpenAI to analyze latest scan data. Added `aiGeneratedAt` timestamp tracking to database schema.
+- 2025-11-08: **Professional Animations & API Integration** - Added comprehensive Framer Motion animations throughout the application with smooth transitions, counting animations, shimmer effects, hover interactions, and page transitions. Configured all API keys (OpenAI, Gemini, HaveIBeenPwned) for full functionality.
 - 2025-11-08: **Gemini SDK Migration** - Migrated from deprecated @google/generative-ai package to new @google/genai SDK with gemini-2.5-flash model for improved chatbot performance and latest features
 - 2025-11-08: **AI Upgrade** - Transformed AI into specialized cybersecurity companion with domain restrictions, context-aware responses from scan history, high-risk detection, and empathetic mentor tone
 - 2025-11-08: Added AI conversational assistant with GPT-4o-mini, AES encryption for data protection, persistent chat history
