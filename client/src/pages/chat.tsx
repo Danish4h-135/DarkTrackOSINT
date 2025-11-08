@@ -8,10 +8,12 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Shield, User, Send, Loader2 } from "lucide-react";
 import type { Message, Conversation } from "@shared/schema";
 import { apiRequest, queryClient } from "@/lib/queryClient";
+import { useToast } from "@/hooks/use-toast";
 
 export default function Chat() {
   const [currentConversationId, setCurrentConversationId] = useState<string | null>(null);
   const [inputMessage, setInputMessage] = useState("");
+  const { toast } = useToast();
 
   // Fetch conversations list
   const { data: conversations = [] } = useQuery<Conversation[]>({
@@ -30,6 +32,10 @@ export default function Chat() {
   const sendMessageMutation = useMutation({
     mutationFn: async (data: { conversationId?: string; message: string }) => {
       const res = await apiRequest("POST", "/api/chat", data);
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.message || "Failed to send message");
+      }
       return await res.json();
     },
     onSuccess: (data: { conversationId: string }) => {
@@ -39,6 +45,13 @@ export default function Chat() {
         setCurrentConversationId(data.conversationId);
       }
       setInputMessage("");
+    },
+    onError: (error: Error) => {
+      toast({
+        title: "Failed to send message",
+        description: error.message || "Please try again later.",
+        variant: "destructive",
+      });
     },
   });
 
