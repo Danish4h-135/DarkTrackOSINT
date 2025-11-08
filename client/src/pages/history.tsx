@@ -6,6 +6,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { RiskBadge } from "@/components/risk-badge";
 import type { Scan } from "@shared/schema";
 import { cn } from "@/lib/utils";
 
@@ -32,11 +33,6 @@ export default function History() {
     enabled: isAuthenticated,
   });
 
-  const getRiskLevel = (score: number) => {
-    if (score <= 30) return { level: "Low", variant: "success" as const };
-    if (score <= 60) return { level: "Medium", variant: "warning" as const };
-    return { level: "High", variant: "destructive" as const };
-  };
 
   if (authLoading || isLoading) {
     return (
@@ -63,7 +59,6 @@ export default function History() {
       {scans.length > 0 ? (
         <div className="space-y-4">
           {scans.map((scan) => {
-            const risk = getRiskLevel(scan.riskScore);
             return (
               <Card key={scan.id} className="p-6 hover-elevate" data-testid={`scan-${scan.id}`}>
                 <div className="flex items-start justify-between gap-4">
@@ -92,15 +87,10 @@ export default function History() {
                             </span>
                           </div>
                         </div>
-                        <Badge 
-                          variant={risk.variant}
-                          className="capitalize"
-                        >
-                          {risk.level} Risk
-                        </Badge>
+                        <RiskBadge score={scan.riskScore} />
                       </div>
 
-                      <div className="grid grid-cols-2 md:grid-cols-4 gap-4 pt-3 border-t">
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-4 pt-3 border-t">
                         <div>
                           <div className="text-xs text-muted-foreground mb-1">Breaches</div>
                           <div className={cn(
@@ -114,12 +104,6 @@ export default function History() {
                           <div className="text-xs text-muted-foreground mb-1">Profiles</div>
                           <div className="text-2xl font-bold font-mono">
                             {scan.profilesDetected}
-                          </div>
-                        </div>
-                        <div>
-                          <div className="text-xs text-muted-foreground mb-1">Risk Score</div>
-                          <div className="text-2xl font-bold font-mono">
-                            {scan.riskScore}
                           </div>
                         </div>
                         <div>

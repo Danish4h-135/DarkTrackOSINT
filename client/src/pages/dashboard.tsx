@@ -7,7 +7,7 @@ import { isUnauthorizedError } from "@/lib/authUtils";
 import { MetricCard } from "@/components/metric-card";
 import { BreachCard } from "@/components/breach-card";
 import { AIRecommendationsPanel } from "@/components/ai-recommendations-panel";
-import { RiskScoreChart } from "@/components/risk-score-chart";
+import { RiskBadge } from "@/components/risk-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -292,19 +292,19 @@ export default function Dashboard() {
                 variant={lookupResult.breachCount > 0 ? "danger" : "default"}
                 testId="metric-lookup-breaches"
               />
-              <MetricCard
-                title="Risk Score"
-                value={lookupResult.riskScore}
-                icon={Shield}
-                variant={
-                  lookupResult.riskScore > 60 
-                    ? "danger" 
-                    : lookupResult.riskScore > 30 
-                    ? "warning" 
-                    : "success"
-                }
-                testId="metric-lookup-risk"
-              />
+              <Card className="p-6">
+                <div className="space-y-4">
+                  <div className="flex items-center gap-2">
+                    <div className="rounded-lg p-2.5 bg-primary/10">
+                      <Shield className="h-5 w-5 text-primary" />
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    <RiskBadge score={lookupResult.riskScore} testId="risk-lookup" />
+                    <p className="text-sm text-muted-foreground">Risk Assessment</p>
+                  </div>
+                </div>
+              </Card>
               <MetricCard
                 title="Secured Data"
                 value={`${lookupResult.securedDataPercentage}%`}
@@ -365,25 +365,12 @@ export default function Dashboard() {
         </div>
       ) : dashboardData && latestScan ? (
         <>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <MetricCard
               title="Total Scans"
               value={dashboardData.overview.totalScans}
               icon={ScanLine}
               testId="metric-total-scans"
-            />
-            <MetricCard
-              title="Avg Risk Score"
-              value={dashboardData.overview.avgRiskScore}
-              icon={Shield}
-              variant={
-                dashboardData.overview.avgRiskScore > 60 
-                  ? "danger" 
-                  : dashboardData.overview.avgRiskScore > 30 
-                  ? "warning" 
-                  : "success"
-              }
-              testId="metric-avg-risk"
             />
             <MetricCard
               title="High Risk"
@@ -446,9 +433,7 @@ export default function Dashboard() {
                             </div>
                           </div>
                           <div className="flex gap-4 items-center">
-                            <Badge variant={scan.riskScore > 60 ? "destructive" : scan.riskScore > 30 ? "default" : "secondary"}>
-                              Risk: {scan.riskScore}
-                            </Badge>
+                            <RiskBadge score={scan.riskScore} showBars={false} />
                             <Badge variant="outline">
                               {scan.breachCount} breaches
                             </Badge>
@@ -462,7 +447,41 @@ export default function Dashboard() {
             </div>
 
             <div className="space-y-6">
-              <RiskScoreChart score={latestScan.riskScore} />
+              <Card className="p-6">
+                <div className="space-y-6">
+                  <div className="text-center space-y-2">
+                    <p className="text-sm text-muted-foreground">Overall Risk Assessment</p>
+                  </div>
+                  <div className="flex flex-col items-center justify-center py-8">
+                    <RiskBadge score={latestScan.riskScore} testId="risk-latest-scan" />
+                  </div>
+                  <div className="space-y-2 border-t pt-4">
+                    <h4 className="text-sm font-medium text-muted-foreground">Risk Categories</h4>
+                    <div className="grid grid-cols-2 gap-3 text-xs">
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-green-500"></div>
+                        <span className="text-muted-foreground">Safe (&lt;20)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-teal-500"></div>
+                        <span className="text-muted-foreground">Low (&lt;40)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-amber-500"></div>
+                        <span className="text-muted-foreground">Medium (&lt;60)</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full bg-orange-500"></div>
+                        <span className="text-muted-foreground">High (&lt;80)</span>
+                      </div>
+                      <div className="flex items-center gap-2 col-span-2">
+                        <div className="w-3 h-3 rounded-full bg-red-500"></div>
+                        <span className="text-muted-foreground">Critical (≥80)</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
             </div>
           </div>
         </>
