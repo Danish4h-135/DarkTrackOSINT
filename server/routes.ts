@@ -445,33 +445,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Get conversation history
       const messages = await storage.getMessagesByConversationId(conversation.id);
       
-      // Get user's latest scan for context
-      const latestScan = await storage.getLatestScanByUserId(userId);
-      let contextInfo = "";
+      // Get user's recent scan history (last 2-3 scans) with full context
+      const recentScans = await storage.getRecentScansWithBreaches(userId, 3);
       
-      if (latestScan) {
-        const breaches = await storage.getBreachesByScanId(latestScan.id);
-        contextInfo = `\n\nUser's Security Context:
-- Email scanned: ${latestScan.email}
-- Breaches found: ${latestScan.breachCount}
-- Risk score: ${latestScan.riskScore}/100
-- Recent breaches: ${breaches.slice(0, 3).map(b => b.name).join(', ')}`;
+      // Build comprehensive security context
+      let contextInfo = "";
+      let highRiskAlert = "";
+      
+      if (recentScans.length > 0) {
+        const latestScan = recentScans[0];
+        const isHighRisk = latestScan.riskScore >= 80;
+        
+        // Build context from recent scans
+        const scanSummaries = recentScans.map((scan, index) => {
+          const scanDate = new Date(scan.createdAt).toLocaleDateString();
+          const topBreaches = scan.breaches
+            .slice(0, 5)
+            .map(b => `${b.name} (${b.severity} severity, ${b.pwnCount?.toLocaleString() || 'unknown'} accounts affected)`)
+            .join(', ');
+          
+          return `Scan ${index + 1} (${scanDate}):
+- Email: ${scan.email}
+- Risk Score: ${scan.riskScore}/100
+- Breaches: ${scan.breachCount}
+- Top Findings: ${topBreaches || 'None'}
+- AI Summary: ${scan.aiSummary || 'No summary available'}`;
+        }).join('\n\n');
+
+        contextInfo = `\n\nUser's Security Context (Last ${recentScans.length} Scans):\n${scanSummaries}`;
+        
+        // Check if high risk and add alert
+        if (isHighRisk) {
+          const highSeverityBreaches = latestScan.breaches.filter(b => b.severity === 'high');
+          highRiskAlert = `\n\n⚠️ HIGH RISK ALERT: The user's latest scan shows a risk score of ${latestScan.riskScore}/100. ${highSeverityBreaches.length} high-severity breaches detected. Offer to guide them through securing their data.`;
+        }
       }
 
-      // Prepare messages for OpenAI
+      // Prepare messages for OpenAI with specialized cybersecurity system prompt
       const chatMessages = [
         {
           role: "system" as const,
-          content: `You are DarkTrack AI, a friendly and knowledgeable cybersecurity assistant. Your role is to help users understand their digital security, explain breaches, provide actionable advice, and answer questions about online privacy and security.
+          content: `You are DarkTrack AI — an ethical, friendly cybersecurity assistant specialized in online privacy, data breaches, and digital security.
 
-Be conversational, empathetic, and clear. Break down technical concepts into simple terms. When discussing breaches or risks, be honest but not alarmist. Always provide practical, actionable steps.${contextInfo}
+Your Mission:
+- Help users understand and secure their online data
+- Explain breaches and privacy risks in simple, clear language
+- Provide actionable, specific security recommendations
+- Be empathetic, supportive, and encouraging
+
+Domain Restrictions (CRITICAL):
+- You ONLY discuss cybersecurity, privacy, data protection, and online safety topics
+- If asked about topics outside this domain (politics, jokes, general knowledge, etc.), politely redirect:
+  "I'm DarkTrack AI — I focus on helping you stay safe online. Would you like a privacy or security tip instead?"
+- Never discuss topics unrelated to cybersecurity, even if asked directly
+
+Communication Style:
+- Be friendly and conversational, like a mentor (not a robot)
+- Use short, clear sentences
+- Break down technical terms into everyday language
+- Be honest but not alarmist about risks
+- Celebrate security improvements with the user
+- Use natural, supportive language
+
+Examples of Your Tone:
+✓ "Hey there! I checked your recent scan — you're doing much better than last week!"
+✓ "No worries, these leaks are old ones. I'll guide you on how to stay safe from now on."
+✓ "That's a smart question — privacy is like a seatbelt, you don't need it until you really need it."
+
+When Explaining Technical Concepts:
+- 2FA example: "2FA means two-factor authentication. It's an extra step when logging in — like entering a code from your phone. It makes it much harder for hackers to get in even if they know your password."
+- Breach example: "A data breach means a website's security was compromised and hackers got access to user data. Think of it like someone breaking into a store and stealing customer records."
+
+High-Risk Response Protocol:
+${highRiskAlert}${highRiskAlert ? '\nIf relevant to the conversation, proactively ask: "Would you like me to guide you through securing or removing that data?"' : ''}
+
+Privacy Rules:
+- Never store or display actual passwords, credit cards, or other sensitive user data
+- Only reference breach names and general security advice
+
+Your Context About This User:${contextInfo}
 
 Remember:
-- Be concise but thorough
-- Use bullet points for clarity
-- Provide specific, actionable advice
-- Explain technical terms when needed
-- Be supportive and encouraging about security improvements`
+- Base ALL answers on the user's actual scan data shown above
+- Reference their specific breaches, risk scores, and history
+- Track progress across scans ("Your risk score improved from 75 to 62!")
+- Provide specific, actionable next steps
+- Stay within cybersecurity domain — redirect if off-topic`
         },
         ...messages.map(msg => ({
           role: msg.role as "user" | "assistant",
@@ -479,12 +538,12 @@ Remember:
         }))
       ];
 
-      // Get AI response using GPT-4o-mini
+      // Get AI response using GPT-5 (as specified in osint.ts)
       const completion = await openai.chat.completions.create({
-        model: "gpt-4o-mini",
+        model: "gpt-5",
         messages: chatMessages,
         temperature: 0.7,
-        max_tokens: 1000,
+        max_completion_tokens: 1500,
       });
 
       const aiResponse = completion.choices[0].message.content || "I apologize, but I couldn't generate a response. Please try again.";
