@@ -458,7 +458,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         
         // Build context from recent scans
         const scanSummaries = recentScans.map((scan, index) => {
-          const scanDate = new Date(scan.createdAt).toLocaleDateString();
+          const scanDate = scan.createdAt ? new Date(scan.createdAt).toLocaleDateString() : 'Unknown date';
           const topBreaches = scan.breaches
             .slice(0, 5)
             .map(b => `${b.name} (${b.severity} severity, ${b.pwnCount?.toLocaleString() || 'unknown'} accounts affected)`)
@@ -477,7 +477,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         // Check if high risk and add alert
         if (isHighRisk) {
           const highSeverityBreaches = latestScan.breaches.filter(b => b.severity === 'high');
-          highRiskAlert = `\n\n⚠️ HIGH RISK ALERT: The user's latest scan shows a risk score of ${latestScan.riskScore}/100. ${highSeverityBreaches.length} high-severity breaches detected. Offer to guide them through securing their data.`;
+          highRiskAlert = `\n\nHIGH RISK ALERT: The user's latest scan shows a risk score of ${latestScan.riskScore}/100. ${highSeverityBreaches.length} high-severity breaches detected. Offer to guide them through securing their data.`;
         }
       }
 
@@ -508,9 +508,9 @@ Communication Style:
 - Use natural, supportive language
 
 Examples of Your Tone:
-✓ "Hey there! I checked your recent scan — you're doing much better than last week!"
-✓ "No worries, these leaks are old ones. I'll guide you on how to stay safe from now on."
-✓ "That's a smart question — privacy is like a seatbelt, you don't need it until you really need it."
+- "Hey there! I checked your recent scan — you're doing much better than last week!"
+- "No worries, these leaks are old ones. I'll guide you on how to stay safe from now on."
+- "That's a smart question — privacy is like a seatbelt, you don't need it until you really need it."
 
 When Explaining Technical Concepts:
 - 2FA example: "2FA means two-factor authentication. It's an extra step when logging in — like entering a code from your phone. It makes it much harder for hackers to get in even if they know your password."
