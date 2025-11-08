@@ -1,0 +1,133 @@
+I’m building a cybersecurity platform called DarkTrack.
+It uses OpenAI for risk analysis and Gemini AI for chatting with the user.
+
+I want you to fix and upgrade the AI chatbot system so it behaves as I describe below. The chatbot currently doesn’t respond as expected. Please rebuild the AI logic properly, ensuring everything connects correctly with the backend, APIs, and dashboard.
+
+💡 Goal
+
+The chatbot must behave as a friendly cybersecurity assistant that:
+
+Only talks about cybersecurity, data safety, and privacy.
+
+Uses Gemini API for conversation (Google Generative Language API).
+
+Uses OpenAI API for analyzing scan data and risk.
+
+Fetches the latest scan data from the database, decrypts it, and sends it to Gemini as context.
+
+Replies in human, simple, helpful language, not robotic text.
+
+Always provides step-by-step help when asked how to fix a security issue.
+
+🧠 Expected Behavior
+
+When a user opens the chat and says something like “How bad is my data risk?”, the chatbot must:
+
+Fetch the most recent scan (scans table → aiReportEnc)
+
+Decrypt it
+
+Summarize the risk using the OpenAI-generated data
+
+Reply naturally using Gemini like:
+
+“Your latest scan shows 3 breaches (LinkedIn, Dropbox, Canva). The risk is moderate — about 62/100. Let’s start by updating your LinkedIn password and enabling two-factor authentication.”
+
+When the user asks for help, tips, or fixes, Gemini should give practical steps — in clear language anyone can understand.
+Example:
+
+“To secure your Dropbox account, go to Settings → Security → Enable 2FA. Also, check if your password matches others you’ve used before.”
+
+The chatbot should never go off-topic (politics, jokes, random questions). If asked something unrelated, it should reply with something like:
+
+“I focus on keeping your digital life secure. Would you like me to share a privacy tip instead?”
+
+Every Gemini message must include the context of the user’s latest scan, so it always remembers what data it’s analyzing.
+
+Responses should be stored in the conversations or messages tables like before (if these exist).
+
+Fix all broken API integrations for Gemini and ensure it uses this endpoint format:
+POST https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent?key=GEMINI_API_KEY
+
+🧩 Technical Implementation Instructions
+
+Update or create: /server/chatAssistant.ts
+
+Implement a chatWithGemini(userMessage, userId) function.
+
+It should:
+
+Fetch the latest decrypted AI report for that user.
+
+Construct a Gemini system message:
+
+You are DarkTrack, a friendly AI cybersecurity assistant.
+You help users fix data breaches and improve online safety.
+Always talk in simple, friendly language.
+Only discuss cybersecurity, data protection, and privacy.
+User’s latest scan data: [insert decrypted AI report here].
+
+
+Send the user’s message + system prompt to Gemini API.
+
+Return Gemini’s text response to the frontend.
+
+Fix: /server/routes.ts
+
+Update the /api/chat route so that it:
+
+Reads { message } and current user from the session.
+
+Calls chatWithGemini(message, userId).
+
+Returns { reply } JSON.
+
+Frontend (Chat UI)
+
+Ensure chat messages are displayed as:
+
+user bubble (right)
+
+ai bubble (left)
+
+Add a loading indicator while waiting for Gemini’s reply.
+
+After the response, append it to the chat array.
+
+Security & Consistency
+
+All database fetches must use encrypted storage functions (decrypt with AES before passing to Gemini).
+
+If the user has no scan history, Gemini should say:
+
+“I couldn’t find your recent scan. Try scanning your email first to see your data safety score.”
+
+Environment Variables (must be used)
+
+OPENAI_API_KEY=
+GEMINI_API_KEY=
+DATABASE_URL=
+SESSION_SECRET=
+
+
+Testing Plan
+
+Test chat by typing: “What’s my risk right now?” → should show analysis from last scan.
+
+Test: “How can I fix my LinkedIn data leak?” → should get step-by-step advice.
+
+Test unrelated message: “Tell me a joke” → should redirect politely.
+
+✅ Expected Deliverables
+
+Fully functional chatWithGemini that understands the latest scan context.
+
+Working /api/chat endpoint.
+
+Friendly, human-like chatbot responses.
+
+Proper connection between Gemini (chat) and OpenAI (risk data).
+
+All logic documented with short comments.
+
+Don’t modify the risk analysis logic (OpenAI part). Just fix and complete the chatbot integration using Gemini exactly as described.
