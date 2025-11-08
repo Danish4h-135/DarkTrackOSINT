@@ -3,6 +3,7 @@ import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { checkHaveIBeenPwned, calculateRiskScore, generateAIAnalysis } from "./osint";
+import OpenAI from "openai";
 
 export async function registerRoutes(app: Express): Promise<Server> {
   // Auth middleware
@@ -159,6 +160,143 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error fetching breaches:", error);
       res.status(500).json({ message: "Failed to fetch breaches" });
+    }
+  });
+
+  // AI Chat endpoints
+  const openai = new OpenAI({
+    apiKey: process.env.OPENAI_API_KEY,
+  });
+
+  // Create or continue a conversation
+  app.post('/api/chat', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { conversationId, message } = req.body;
+
+      if (!message || !message.trim()) {
+        return res.status(400).json({ message: "Message is required" });
+      }
+
+      let conversation;
+      
+      // Create new conversation if none exists
+      if (!conversationId) {
+        conversation = await storage.createConversation({
+          userId,
+          title: message.substring(0, 50) + (message.length > 50 ? '...' : ''),
+        });
+      } else {
+        // Verify conversation belongs to user
+        conversation = await storage.getConversationById(conversationId);
+        if (!conversation || conversation.userId !== userId) {
+          return res.status(404).json({ message: "Conversation not found" });
+        }
+      }
+
+      // Save user message
+      await storage.createMessage({
+        conversationId: conversation.id,
+        role: "user",
+        content: message,
+      });
+
+      // Get conversation history
+      const messages = await storage.getMessagesByConversationId(conversation.id);
+      
+      // Get user's latest scan for context
+      const latestScan = await storage.getLatestScanByUserId(userId);
+      let contextInfo = "";
+      
+      if (latestScan) {
+        const breaches = await storage.getBreachesByScanId(latestScan.id);
+        contextInfo = `\n\nUser's Security Context:
+- Email scanned: ${latestScan.email}
+- Breaches found: ${latestScan.breachCount}
+- Risk score: ${latestScan.riskScore}/100
+- Recent breaches: ${breaches.slice(0, 3).map(b => b.name).join(', ')}`;
+      }
+
+      // Prepare messages for OpenAI
+      const chatMessages = [
+        {
+          role: "system" as const,
+          content: `You are DarkTrack AI, a friendly and knowledgeable cybersecurity assistant. Your role is to help users understand their digital security, explain breaches, provide actionable advice, and answer questions about online privacy and security.
+
+Be conversational, empathetic, and clear. Break down technical concepts into simple terms. When discussing breaches or risks, be honest but not alarmist. Always provide practical, actionable steps.${contextInfo}
+
+Remember:
+- Be concise but thorough
+- Use bullet points for clarity
+- Provide specific, actionable advice
+- Explain technical terms when needed
+- Be supportive and encouraging about security improvements`
+        },
+        ...messages.map(msg => ({
+          role: msg.role as "user" | "assistant",
+          content: msg.content,
+        }))
+      ];
+
+      // Get AI response using GPT-4o-mini
+      const completion = await openai.chat.completions.create({
+        model: "gpt-4o-mini",
+        messages: chatMessages,
+        temperature: 0.7,
+        max_tokens: 1000,
+      });
+
+      const aiResponse = completion.choices[0].message.content || "I apologize, but I couldn't generate a response. Please try again.";
+
+      // Save AI response
+      const assistantMessage = await storage.createMessage({
+        conversationId: conversation.id,
+        role: "assistant",
+        content: aiResponse,
+      });
+
+      res.json({
+        conversationId: conversation.id,
+        message: assistantMessage,
+      });
+    } catch (error: any) {
+      console.error("Error in chat:", error);
+      res.status(500).json({ message: error.message || "Failed to process chat message" });
+    }
+  });
+
+  // Get all conversations for current user
+  app.get('/api/conversations', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const conversations = await storage.getConversationsByUserId(userId);
+      res.json(conversations);
+    } catch (error) {
+      console.error("Error fetching conversations:", error);
+      res.status(500).json({ message: "Failed to fetch conversations" });
+    }
+  });
+
+  // Get a specific conversation with all messages
+  app.get('/api/conversations/:id', isAuthenticated, async (req: any, res) => {
+    try {
+      const userId = req.user.claims.sub;
+      const { id } = req.params;
+
+      const conversation = await storage.getConversationById(id);
+      if (!conversation || conversation.userId !== userId) {
+        return res.status(404).json({ message: "Conversation not found" });
+      }
+
+      const messages = await storage.getMessagesByConversationId(id);
+      
+      res.json({
+        ...conversation,
+        messages,
+      });
+    } catch (error) {
+      console.error("Error fetching conversation:", error);
+      res.status(500).json({ message: "Failed to fetch conversation" });
     }
   });
 

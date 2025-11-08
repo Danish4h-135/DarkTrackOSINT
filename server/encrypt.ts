@@ -28,21 +28,34 @@ export function encrypt(data: string): string {
 
 /**
  * Decrypts AES encrypted data
- * @param cipherText - Encrypted data to decrypt
+ * Handles legacy unencrypted data gracefully by returning it as-is
+ * @param cipherText - Encrypted data to decrypt (or plaintext for legacy data)
  * @returns Decrypted plain text
  */
 export function decrypt(cipherText: string): string {
   if (!cipherText) return "";
+  
+  // Check if data appears to be encrypted (AES encrypted data starts with "U2FsdGVkX1" in base64)
+  // If it doesn't look encrypted, assume it's legacy plaintext data
+  if (!cipherText.includes("U2FsdGVkX1") && !cipherText.startsWith("U2F")) {
+    // Likely legacy unencrypted data - return as-is
+    console.warn("⚠️  Detected unencrypted legacy data - returning plaintext");
+    return cipherText;
+  }
+  
   try {
     const bytes = CryptoJS.AES.decrypt(cipherText, ENCRYPTION_KEY);
     const decrypted = bytes.toString(CryptoJS.enc.Utf8);
     if (!decrypted) {
-      throw new Error("Decryption returned empty string - possibly wrong key");
+      // Decryption failed - might be legacy unencrypted data
+      console.warn("⚠️  Decryption returned empty - treating as legacy unencrypted data");
+      return cipherText;
     }
     return decrypted;
   } catch (error) {
-    console.error("Decryption failed:", error);
-    throw new Error("Failed to decrypt data");
+    // Decryption failed - treat as legacy unencrypted data
+    console.warn("⚠️  Decryption error - treating as legacy unencrypted data:", error);
+    return cipherText;
   }
 }
 

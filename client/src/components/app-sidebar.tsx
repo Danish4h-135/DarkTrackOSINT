@@ -1,4 +1,4 @@
-import { Home, History, Settings, HelpCircle, Shield, LogOut } from "lucide-react";
+import { Home, MessageSquare, History, Settings, HelpCircle, Shield, LogOut } from "lucide-react";
 import { useLocation } from "wouter";
 import {
   Sidebar,
@@ -20,6 +20,11 @@ const menuItems = [
     title: "Dashboard",
     url: "/",
     icon: Home,
+  },
+  {
+    title: "AI Assistant",
+    url: "/chat",
+    icon: MessageSquare,
   },
   {
     title: "Scan History",

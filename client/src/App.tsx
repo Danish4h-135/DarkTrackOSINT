@@ -8,6 +8,7 @@ import { AppSidebar } from "@/components/app-sidebar";
 import { useAuth } from "@/hooks/useAuth";
 import Landing from "@/pages/landing";
 import Dashboard from "@/pages/dashboard";
+import Chat from "@/pages/chat";
 import History from "@/pages/history";
 import Settings from "@/pages/settings";
 import Help from "@/pages/help";
@@ -23,6 +24,7 @@ function Router() {
       ) : (
         <>
           <Route path="/" component={Dashboard} />
+          <Route path="/chat" component={Chat} />
           <Route path="/history" component={History} />
           <Route path="/settings" component={Settings} />
           <Route path="/help" component={Help} />
