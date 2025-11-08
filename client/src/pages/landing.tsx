@@ -71,7 +71,7 @@ export default function Landing() {
             >
               DarkTrack
             </h1>
-            <p className="text-sm text-gray-400">
+            <p className="text-sm text-gray-400 ml-[0px] mr-[0px] mt-[0px] mb-[0px]">
               Know your exposure. Secure it fast.
             </p>
           </div>
